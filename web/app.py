@@ -1465,4 +1465,9 @@ if __name__ == "__main__":
     else:
         init_db()
         port = int(os.environ.get("PORT", "5000"))
-        app.run(host="0.0.0.0", port=port, debug=True)
+        if os.environ.get("USE_WAITRESS") == "1":
+            from waitress import serve
+            serve(app, host="0.0.0.0", port=port)
+        else:
+            debug = os.environ.get("FLASK_DEBUG", "0") == "1"
+            app.run(host="0.0.0.0", port=port, debug=debug)
