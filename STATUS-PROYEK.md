@@ -120,7 +120,8 @@ Catatan: asisten tidak menyimpan ingatan percakapan antar-sesi secara otomatis. 
 - Feedback klien dikirim lewat **WhatsApp langsung ke pembuat aplikasi**, bukan lewat GitHub Issues.
 - Setiap selesai memperbaiki di OpenCode, jalankan `sync-github.ps1` agar perubahan otomatis di-`commit` lalu di-`push` ke `origin`.
 - `.gitignore` sudah mencegah `web/konsinyasi.db`, folder `__pycache__`, dan proyek lain di workspace ikut ter-commit.
-- Deploy internet yang dipilih: **PythonAnywhere Free** (tanpa kartu kredit). Panduan ada di `PYTHONANYWHERE.md`; `web/wsgi.py` membuat seed otomatis dan `update-pythonanywhere.sh` menarik perubahan dari GitHub + reload.
+- Cara paling cepat untuk demo: `jalankan-internet.ps1` menyalakan Flask + Cloudflare Tunnel dan memberi URL `https://xxxx.trycloudflare.com` (tanpa kartu, tanpa hosting; laptop harus nyala, URL sementara).
+- Deploy internet permanen tanpa kartu: **PythonAnywhere Free**. Panduan ada di `PYTHONANYWHERE.md`; `web/wsgi.py` membuat seed otomatis dan `update-pythonanywhere.sh` menarik perubahan dari GitHub + reload.
 - `render.yaml` tetap disimpan sebagai alternatif auto-deploy penuh (Render meminta kartu hanya untuk verifikasi akun).
 - Database di PythonAnywhere permanen di `~/konsinyasi-tenan/web/konsinyasi.db`, berbeda dengan Render yang kembali ke seed setelah deploy ulang.
 - Sebelum dipakai publik sungguhan: ganti password contoh dan `KONSINYASI_SECRET_KEY`.

@@ -230,3 +230,13 @@ Catatan:
 ## Alternatif tanpa kartu kredit: PythonAnywhere
 
 Kalau tidak ingin memasukkan kartu di Render, gunakan PythonAnywhere. Panduan lengkap ada di `../PYTHONANYWHERE.md`. File `web/wsgi.py` dan `update-pythonanywhere.sh` sudah disiapkan agar aplikasi bisa langsung dijalankan dan di-update dari GitHub.
+
+## Cara paling cepat: akses internet sementara
+
+Dari folder induk jalankan:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\jalankan-internet.ps1
+```
+
+Script menyalakan Flask lalu membuka Cloudflare Tunnel. Salin URL `https://xxxx.trycloudflare.com` yang muncul di jendela `cloudflared`, lalu kirim ke klien. URL ini sementara dan berubah setiap tunnel dijalankan ulang; laptop harus tetap menyala.
