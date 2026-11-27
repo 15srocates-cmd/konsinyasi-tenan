@@ -116,7 +116,7 @@ Catatan: asisten tidak menyimpan ingatan percakapan antar-sesi secara otomatis. 
 
 ## 9. GitHub & sinkronisasi
 
-- Repo yang dipakai: **public**, dibuat kosong di GitHub oleh pembuat aplikasi (belum dihubungkan; menunggu URL repo).
+- Repo yang dipakai: **public**, `https://github.com/15srocates-cmd/konsinyasi-tenan.git`, sudah terhubung sebagai `origin` dan branch `main` sudah di-push.
 - Feedback klien dikirim lewat **WhatsApp langsung ke pembuat aplikasi**, bukan lewat GitHub Issues.
 - Setiap selesai memperbaiki di OpenCode, jalankan `sync-github.ps1` agar perubahan otomatis di-`commit` lalu di-`push` ke `origin`.
 - `.gitignore` sudah mencegah `web/konsinyasi.db`, folder `__pycache__`, dan proyek lain di workspace ikut ter-commit.
