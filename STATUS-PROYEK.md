@@ -14,7 +14,7 @@ Aplikasi web Flask + SQLite sudah berjalan dan diuji. Fitur yang sudah ada:
 - Kasir bergaya alur Youtap POS: Daftar Produk/Input Manual → Detail Pesanan (qty, harga, charge/discount, total) → tombol **BAYAR** → konfirmasi tunai/transfer/QRIS manual → struk
 - Tenan baru **Sukabakmi** (`SBK`) dengan 18 produk dari gambar yang diberikan
 - Edit barang: nama, kode, harga acuan, harga jual, expired, status aktif
-- Tambah Tenan: kode prefix otomatis terisi dari huruf pertama setiap kata pada Nama Tenan (mis. `Mitra Niaga Utama` → `MNU`), masih bisa diubah manual
+- Tambah Tenan: kode prefix otomatis terisi dari huruf pertama setiap kata pada Nama Tenan (mis. `Mitra Niaga Utama` → `MNU`), masih bisa diubah manual; field bank terpisah menjadi **Nama Bank** dan **Nomor Rekening** (juga bisa diedit, tampil di daftar Tenan)
 - Edit Tenan lewat **popup** pada daftar Tenan: kode, nama, kontak, model, komisi, periode, tempo; perubahan kode otomatis menyesuaikan kode barang Tenan tersebut
 - Dashboard tidak lagi menampilkan stok titipan; diganti grafik pendapatan 7 hari terakhir (komisi/margin vs penjualan) + stat pendapatan hari ini
 - Role `tenan` sebagai Pengisi Tenan: input titipan berstatus `PENDING`, terbatas pada Tenan sendiri; bisa mengusulkan barang baru yang aktif setelah disetujui admin

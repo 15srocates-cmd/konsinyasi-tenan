@@ -16,7 +16,8 @@
       </div>
       <div class="row">
         <div><label>Kontak</label><input name="kontak"></div>
-        <div><label>Rekening</label><input name="rekening"></div>
+        <div><label>Nama Bank</label><input name="nama_bank" placeholder="BCA"></div>
+        <div><label>Nomor Rekening</label><input name="rekening" placeholder="123456"></div>
       </div>
       <button type="submit">Simpan Tenan</button>
     </form>
@@ -78,7 +79,7 @@
   <table>
     <thead>
       <tr>
-        <th>Kode</th><th>Nama</th><th>Kontak</th>
+        <th>Kode</th><th>Nama</th><th>Kontak</th><th>Bank</th><th>No. Rekening</th>
         <th>Model</th><th>Komisi</th><th>Periode</th><th>Tempo</th><th>Aksi</th>
       </tr>
     </thead>
@@ -88,6 +89,8 @@
         <td>{{ r.kode_prefix }}</td>
         <td>{{ r.nama }}</td>
         <td>{{ r.kontak or '-' }}</td>
+        <td>{{ r.nama_bank or '-' }}</td>
+        <td>{{ r.rekening or '-' }}</td>
         <td>{{ r.model or '-' }}</td>
         <td>
           {% if r.model == 'B' %}
@@ -105,6 +108,8 @@
             data-kode="{{ r.kode_prefix }}"
             data-nama="{{ r.nama }}"
             data-kontak="{{ r.kontak or '' }}"
+            data-bank="{{ r.nama_bank or '' }}"
+            data-rekening="{{ r.rekening or '' }}"
             data-model="{{ r.model or 'B' }}"
             data-tipe="{{ r.tipe_komisi or 'persen' }}"
             data-nilai="{{ r.nilai_komisi if r.nilai_komisi is not none else 0 }}"
@@ -133,6 +138,10 @@
       </div>
       <div class="row" style="margin-top:8px">
         <div><label>Kontak</label><input name="kontak" id="edit-kontak"></div>
+        <div><label>Nama Bank</label><input name="nama_bank" id="edit-bank"></div>
+        <div><label>No. Rekening</label><input name="rekening" id="edit-rekening"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
         <div>
           <label>Model</label>
           <select name="model" id="edit-model">
@@ -180,6 +189,8 @@ function bukaEditTenan(button) {
   document.getElementById('edit-kode').value = d.kode;
   document.getElementById('edit-nama').value = d.nama;
   document.getElementById('edit-kontak').value = d.kontak;
+  document.getElementById('edit-bank').value = d.bank;
+  document.getElementById('edit-rekening').value = d.rekening;
   document.getElementById('edit-model').value = d.model;
   document.getElementById('edit-tipe').value = d.tipe;
   document.getElementById('edit-nilai').value = d.nilai;

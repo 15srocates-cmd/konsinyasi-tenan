@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS tenan (
   kode_prefix  VARCHAR(10) NOT NULL UNIQUE,
   nama         VARCHAR(150) NOT NULL,
   kontak       VARCHAR(100),
+  nama_bank    VARCHAR(100),
   rekening     VARCHAR(100),
   aktif        BOOLEAN NOT NULL DEFAULT TRUE,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),

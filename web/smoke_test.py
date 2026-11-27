@@ -73,6 +73,7 @@ res = client.get("/tenan")
 print("GET /tenan memuat popup edit ->", res.status_code)
 assert res.status_code == 200
 assert b"modal-edit-tenan" in res.data and b"bukaEditTenan" in res.data
+assert b"Nama Bank" in res.data and b"edit-bank" in res.data
 
 with app.app_context():
     db = get_db()
@@ -86,6 +87,8 @@ with app.app_context():
         "kode_prefix": tsd["kode_prefix"],
         "nama": tsd["nama"],
         "kontak": tsd["kontak"] or "",
+        "nama_bank": tsd["nama_bank"] or "",
+        "rekening": tsd["rekening"] or "",
         "model": ksd["model"] if ksd else "B",
         "tipe_komisi": ksd["tipe_komisi"] if ksd else "persen",
         "nilai_komisi": ksd["nilai_komisi"] if ksd else 0,
@@ -96,6 +99,8 @@ edit_baru = {
     "kode_prefix": "SDX",
     "nama": "Sari Dagang (ubah)",
     "kontak": "0812-0000-0000",
+    "nama_bank": "Mandiri",
+    "rekening": "777888",
     "model": "A",
     "tipe_komisi": "tetap",
     "nilai_komisi": "2500",
@@ -121,6 +126,8 @@ with app.app_context():
     assert diedit["kode_prefix"] == "SDX"
     assert diedit["nama"] == "Sari Dagang (ubah)"
     assert diedit["kontak"] == "0812-0000-0000"
+    assert diedit["nama_bank"] == "Mandiri"
+    assert diedit["rekening"] == "777888"
     assert bg["kode"] == "SDX-001", bg["kode"]
     assert kes["model"] == "A" and kes["tipe_komisi"] == "tetap"
     assert kes["nilai_komisi"] == 2500
@@ -132,13 +139,15 @@ client.post(f"/tenan/{tid_sd}/edit", data=edit_lama)
 # --- Tambah Tenan: prefix otomatis dari huruf pertama tiap kata nama ---
 res = client.get("/tenan")
 assert b"tambah-nama" in res.data and b"dieditManual" in res.data
+assert b'name="nama_bank"' in res.data
 res = client.post(
     "/tenan",
     data={
         "nama": "Mitra Niaga Utama",
         "kode_prefix": "",
         "kontak": "0813-0000-0000",
-        "rekening": "BNI 999",
+        "nama_bank": "BNI",
+        "rekening": "999123",
     },
     follow_redirects=True,
 )
@@ -151,6 +160,8 @@ with app.app_context():
     ).fetchone()
     print("Tenan baru:", dict(tenan_baru))
     assert tenan_baru["kode_prefix"] == "MNU", tenan_baru["kode_prefix"]
+    assert tenan_baru["nama_bank"] == "BNI"
+    assert tenan_baru["rekening"] == "999123"
 
 # Prefix yang diisi manual tetap dipakai.
 res = client.post(

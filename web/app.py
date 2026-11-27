@@ -569,6 +569,21 @@ def init_db(reset: bool = False) -> None:
         if nama not in kolom_item:
             db.execute(f"ALTER TABLE penerimaan_item ADD COLUMN {nama} TEXT")
 
+    # Migrasi ringan: database lama belum memisahkan nama bank dari rekening.
+    kolom_tenan = {r["name"] for r in db.execute("PRAGMA table_info(tenan)")}
+    if "nama_bank" not in kolom_tenan:
+        db.execute("ALTER TABLE tenan ADD COLUMN nama_bank TEXT")
+        # Data lama menyimpan "BCA 123456" dalam satu kolom rekening.
+        for r in db.execute(
+            "SELECT id, rekening FROM tenan "
+            "WHERE rekening IS NOT NULL AND rekening LIKE '% %'"
+        ).fetchall():
+            bank, _, nomor = r["rekening"].partition(" ")
+            db.execute(
+                "UPDATE tenan SET nama_bank = ?, rekening = ? WHERE id = ?",
+                (bank.strip(), nomor.strip(), r["id"]),
+            )
+
     seed_permissions(db)
 
     # Database lama menyimpan tenan|penerimaan.view = 0. Aktifkan hak-hak baru
@@ -999,15 +1014,17 @@ def seed_data(db):
         return
 
     tenans = [
-        ("SD", "Sari Dagang", "0812-1111", "BCA 123456"),
-        ("MN", "Mitra Niaga", "0813-2222", "Mandiri 654321"),
-        ("BJ", "Bumi Jaya", "0814-3333", "BNI 111222"),
-        ("SBK", "Sukabakmi", "0815-4444", "BCA 888999"),
+        ("SD", "Sari Dagang", "0812-1111", "BCA", "123456"),
+        ("MN", "Mitra Niaga", "0813-2222", "Mandiri", "654321"),
+        ("BJ", "Bumi Jaya", "0814-3333", "BNI", "111222"),
+        ("SBK", "Sukabakmi", "0815-4444", "BCA", "888999"),
     ]
-    for kode, nama, kontak, rekening in tenans:
+    for kode, nama, kontak, bank, rekening in tenans:
         db.execute(
-            "INSERT INTO tenan (id, kode_prefix, nama, kontak, rekening) VALUES (?, ?, ?, ?, ?)",
-            (uid(), kode, nama, kontak, rekening),
+            """INSERT INTO tenan
+               (id, kode_prefix, nama, kontak, nama_bank, rekening)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (uid(), kode, nama, kontak, bank, rekening),
         )
 
     by_kode = {r["kode_prefix"]: r["id"] for r in db.execute("SELECT * FROM tenan")}
@@ -1260,9 +1277,14 @@ def tenan():
             if not nama or not kode:
                 raise ValueError("Nama Tenan wajib diisi")
             db.execute(
-                "INSERT INTO tenan (id, kode_prefix, nama, kontak, rekening) VALUES (?, ?, ?, ?, ?)",
-                (uid(), kode, nama, request.form.get("kontak", ""),
-                 request.form.get("rekening", "")),
+                """INSERT INTO tenan
+                   (id, kode_prefix, nama, kontak, nama_bank, rekening)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (
+                    uid(), kode, nama, request.form.get("kontak", ""),
+                    request.form.get("nama_bank", "").strip(),
+                    request.form.get("rekening", "").strip(),
+                ),
             )
             db.commit()
             flash("Tenan berhasil ditambahkan", "ok")
@@ -1345,9 +1367,14 @@ def tenan_edit(tid):
         db.execute(
             """UPDATE tenan
                   SET kode_prefix = ?, nama = ?, kontak = ?,
+                      nama_bank = ?, rekening = ?,
                       updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?""",
-            (kode, nama, request.form.get("kontak", "").strip(), tid),
+            (
+                kode, nama, request.form.get("kontak", "").strip(),
+                request.form.get("nama_bank", "").strip(),
+                request.form.get("rekening", "").strip(), tid,
+            ),
         )
         for kode_baru, bid in ubah_barang:
             db.execute(
