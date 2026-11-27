@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: konsinyasi-tenan
+    runtime: python
+    plan: free
+    branch: main
+    buildCommand: pip install -r web/requirements.txt
+    startCommand: cd web && python app.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: USE_WAITRESS
+        value: "1"
+      - key: KONSINYASI_SECRET_KEY
+        generateValue: true

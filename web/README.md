@@ -206,3 +206,23 @@ powershell -ExecutionPolicy Bypass -File .\sync-github.ps1 -Pesan "Ringkasan per
 ```
 
 Script itu otomatis menjalankan `git add`, `git commit`, lalu `git push origin main` (jika remote `origin` sudah terhubung). File `web/konsinyasi.db` sengaja dikecualikan oleh `.gitignore` karena berisi data nyata dan hak akses user.
+
+## Deploy ke Render (akses internet dari GitHub)
+
+File `render.yaml` sudah disiapkan di folder induk. Caranya:
+
+1. Login/daftar di https://dashboard.render.com memakai akun GitHub
+2. Pilih **New + → Blueprint**
+3. Hubungkan repository `konsinyasi-tenan`
+4. Render akan membaca `render.yaml` dan membuat web service otomatis
+5. Setelah deploy selesai, buka URL yang muncul, misalnya `https://konsinyasi-tenan.onrender.com`
+6. Login memakai akun contoh `admin` / `admin123`
+
+Setiap kali kode di-push ke `main`, Render otomatis deploy ulang.
+
+Catatan:
+
+- `KONSINYASI_SECRET_KEY` dibuat otomatis oleh Render (nilai acak).
+- Database `konsinyasi.db` tidak ikut repo; saat deploy pertama Render membuat data contoh otomatis. Karena filesystem free plan tidak permanen, data akan kembali ke seed setelah deploy ulang — ini disengaja untuk kebutuhan demo/feedback.
+- Free plan Render tidak aktif setelah beberapa menit tidak dipakai; request pertama setelah itu bisa memakan waktu ±30 detik.
+- Untuk penyimpanan data permanen, nanti perlu persistent disk atau migrasi ke PostgreSQL.

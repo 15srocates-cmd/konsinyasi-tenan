@@ -120,4 +120,5 @@ Catatan: asisten tidak menyimpan ingatan percakapan antar-sesi secara otomatis. 
 - Feedback klien dikirim lewat **WhatsApp langsung ke pembuat aplikasi**, bukan lewat GitHub Issues.
 - Setiap selesai memperbaiki di OpenCode, jalankan `sync-github.ps1` agar perubahan otomatis di-`commit` lalu di-`push` ke `origin`.
 - `.gitignore` sudah mencegah `web/konsinyasi.db`, folder `__pycache__`, dan proyek lain di workspace ikut ter-commit.
-- Sebelum repo dipublikasikan/deploy: ganti password contoh dan set `KONSINYASI_SECRET_KEY` di lingkungan produksi.
+- Deploy internet memakai **Render Blueprint** (`render.yaml`): connect repo GitHub → auto-deploy setiap push ke `main`, seed demo dibuat otomatis, `KONSINYASI_SECRET_KEY` di-generate Render.
+- Sebelum dipakai publik sungguhan: ganti password contoh. Untuk data permanen nanti butuh persistent disk atau migrasi PostgreSQL.
