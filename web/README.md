@@ -226,3 +226,7 @@ Catatan:
 - Database `konsinyasi.db` tidak ikut repo; saat deploy pertama Render membuat data contoh otomatis. Karena filesystem free plan tidak permanen, data akan kembali ke seed setelah deploy ulang — ini disengaja untuk kebutuhan demo/feedback.
 - Free plan Render tidak aktif setelah beberapa menit tidak dipakai; request pertama setelah itu bisa memakan waktu ±30 detik.
 - Untuk penyimpanan data permanen, nanti perlu persistent disk atau migrasi ke PostgreSQL.
+
+## Alternatif tanpa kartu kredit: PythonAnywhere
+
+Kalau tidak ingin memasukkan kartu di Render, gunakan PythonAnywhere. Panduan lengkap ada di `../PYTHONANYWHERE.md`. File `web/wsgi.py` dan `update-pythonanywhere.sh` sudah disiapkan agar aplikasi bisa langsung dijalankan dan di-update dari GitHub.
