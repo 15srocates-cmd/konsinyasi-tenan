@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Kelola User{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2>Tambah User</h2>
+  <form method="post">
+    <div class="row">
+      <div><label>Username</label><input name="username" required></div>
+      <div><label>Password</label><input name="password" type="password" minlength="4" required></div>
+      <div><label>Nama</label><input name="nama" required></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div>
+        <label>Role</label>
+        <select name="role" id="role" required>
+          <option value="admin">admin</option>
+          <option value="kasir">kasir</option>
+          <option value="manajer">manajer</option>
+          <option value="tenan">tenan</option>
+        </select>
+      </div>
+      <div>
+        <label>Tenan (wajib untuk role tenan)</label>
+        <select name="tenan_id">
+          <option value="">— tidak ada —</option>
+          {% for t in tenans %}<option value="{{ t.id }}">{{ t.nama }} ({{ t.kode_prefix }})</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <button type="submit" style="margin-top:10px">Buat User</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Daftar User</h2>
+  <table>
+    <thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Tenan</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.username }}</td>
+        <td>{{ r.nama }}</td>
+        <td><span class="badge">{{ r.role }}</span></td>
+        <td>{{ r.tenan or '-' }}</td>
+        <td><span class="badge {{ 'DIBAYAR' if r.aktif else 'DRAFT' }}">{{ 'aktif' if r.aktif else 'nonaktif' }}</span></td>
+        <td>
+          {% if r.id != user.id %}
+          <form method="post" style="margin:0">
+            <input type="hidden" name="aksi" value="toggle">
+            <input type="hidden" name="user_id" value="{{ r.id }}">
+            <button class="secondary" type="submit">{{ 'Nonaktifkan' if r.aktif else 'Aktifkan' }}</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

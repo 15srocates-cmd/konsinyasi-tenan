@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Barang Titipan{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2>Tambah Barang Titipan</h2>
+  <form method="post">
+    <div class="row">
+      <div>
+        <label>Tenan</label>
+        <select name="tenan_id" required>
+          {% for t in tenans %}<option value="{{ t.id }}">{{ t.nama }} ({{ t.kode_prefix }})</option>{% endfor %}
+        </select>
+      </div>
+      <div><label>Kode barang</label><input name="kode" required placeholder="SD-003"></div>
+      <div><label>Nama barang</label><input name="nama" required></div>
+      <div><label>Harga acuan Tenan</label><input name="harga_acuan" type="number" min="0" value="0"></div>
+      <div><label>Harga jual default</label><input name="harga_jual" type="number" min="0" value="0"></div>
+      <div><label>Expired (opsional)</label><input name="expired" type="date"></div>
+    </div>
+    <button type="submit">Simpan Barang</button>
+  </form>
+  <div class="muted" style="margin-top:8px">
+    Kode unik per Tenan. Tanpa barcode — cari barang lewat kode/nama di form penjualan.
+  </div>
+</div>
+
+<div class="card">
+  <h2>Daftar Barang Titipan</h2>
+  {% if rows %}
+  <table>
+    <thead>
+      <tr><th>Tenan</th><th>Kode</th><th>Nama</th><th class="num">Acuan</th><th class="num">Jual</th><th class="num">Stok</th><th>Expired</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.tenan }}</td>
+        <td>{{ r.kode }}</td>
+        <td>{{ r.nama }}</td>
+        <td class="num">{{ r.harga_acuan_tenan | rupiah }}</td>
+        <td class="num">{{ r.harga_jual | rupiah }}</td>
+        <td class="num"><strong>{{ r.stok }}</strong></td>
+        <td>{{ r.expired or '-' }}</td>
+        <td><a class="button secondary" href="{{ url_for('barang_edit', bid=r.id) }}">Edit</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">Belum ada barang.</div>{% endif %}
+</div>
+
+{% endblock %}

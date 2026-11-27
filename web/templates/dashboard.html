@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Konsinyasi Tenan{% endblock %}
+{% block content %}
+
+<div class="grid grid-3">
+  <div class="card stat">
+    <div class="label">Total sisa hutang</div>
+    <div class="value">Rp {{ (hutang | sum(attribute='sisa_hutang')) | rupiah }}</div>
+    <div class="muted">Hutang ke seluruh Tenan</div>
+  </div>
+  <div class="card stat">
+    <div class="label">Settlement perlu perhatian</div>
+    <div class="value">{{ settlement_dekat | length }}</div>
+    <div class="muted">Jatuh tempo dalam 7 hari</div>
+  </div>
+  <div class="card stat">
+    <div class="label">Jenis barang titipan</div>
+    <div class="value">{{ stok | length }}</div>
+    <div class="muted">Masih tersedia di stok</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Stok titipan</h2>
+  {% if stok %}
+  <table>
+    <thead><tr><th>Tenan</th><th>Kode</th><th>Barang</th><th class="num">Qty</th></tr></thead>
+    <tbody>
+      {% for r in stok %}
+      <tr><td>{{ r.tenan }}</td><td>{{ r.kode }}</td><td>{{ r.barang }}</td><td class="num">{{ r.qty }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">Belum ada stok titipan.</div>{% endif %}
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Hutang per Tenan</h2>
+    <table>
+      <thead><tr><th>Tenan</th><th class="num">Hutang</th><th class="num">Koreksi</th><th class="num">Dibayar</th><th class="num">Sisa</th></tr></thead>
+      <tbody>
+        {% for r in hutang %}
+        <tr>
+          <td>{{ r.tenan }}</td>
+          <td class="num">{{ r.total_hutang | rupiah }}</td>
+          <td class="num">{{ r.total_koreksi | rupiah }}</td>
+          <td class="num">{{ r.sudah_dibayar | rupiah }}</td>
+          <td class="num"><strong>{{ r.sisa_hutang | rupiah }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Settlement mendekat</h2>
+    {% if settlement_dekat %}
+    <table>
+      <thead><tr><th>Tenan</th><th>Periode</th><th class="num">Bayar</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for r in settlement_dekat %}
+        <tr>
+          <td>{{ r.tenan }}</td>
+          <td>{{ r.periode_awal }} s/d {{ r.periode_akhir }}</td>
+          <td class="num">{{ r.total_bayar | rupiah }}</td>
+          <td><span class="badge {{ r.status }}">{{ r.status }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<div class="empty">Tidak ada settlement yang mendekat.</div>{% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>Penjualan terakhir</h2>
+  {% if penjualan_terakhir %}
+  <table>
+    <thead><tr><th>No. nota</th><th>Tanggal</th><th>Kasir</th><th class="num">Penjualan</th><th class="num">Komisi/Margin</th></tr></thead>
+    <tbody>
+      {% for r in penjualan_terakhir %}
+      <tr>
+        <td><a href="{{ url_for('penjualan') }}">{{ r.nomor }}</a></td>
+        <td>{{ r.tanggal }}</td>
+        <td>{{ r.kasir or '-' }}</td>
+        <td class="num">{{ r.total_penjualan | rupiah }}</td>
+        <td class="num">{{ r.total_komisi | rupiah }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">Belum ada penjualan.</div>{% endif %}
+</div>
+
+{% endblock %}

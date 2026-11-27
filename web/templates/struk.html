@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Struk {{ p.nomor }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="struk">
+  <h2>TOKO KONSINYASI</h2>
+  <div class="muted" style="text-align:center">Jl. Contoh No. 1 · Telp. 000-0000</div>
+  <hr>
+
+  <div><strong>{{ p.nomor }}</strong></div>
+  <div class="muted">{{ p.tanggal }} · Kasir: {{ p.kasir or '-' }}</div>
+  <div class="muted">Metode: {{ p.metode_bayar|upper }}</div>
+  <hr>
+
+  <table>
+    <thead><tr><th>Barang</th><th class="num">Qty</th><th class="num">Subtotal</th></tr></thead>
+    <tbody>
+      {% for r in items %}
+      <tr>
+        <td>{{ r.kode }} — {{ r.barang }}<div class="muted">{{ r.tenan }}</div></td>
+        <td class="num">{{ r.qty }}</td>
+        <td class="num">{{ r.subtotal_penjualan | rupiah }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <hr>
+
+  <div class="muted">Subtotal: Rp {{ p.total_penjualan | rupiah }}</div>
+  {% if p.diskon %}<div class="muted">Diskon: -Rp {{ p.diskon | rupiah }}</div>{% endif %}
+  {% if p.charge %}<div class="muted">Biaya tambahan: Rp {{ p.charge | rupiah }}</div>{% endif %}
+  <div class="total">Total bayar: Rp {{ p.total_akhir | rupiah }}</div>
+  <div class="muted">Uang diterima: Rp {{ p.uang_diterima | rupiah }}</div>
+  <div class="muted">Kembalian: Rp {{ p.kembalian | rupiah }}</div>
+  <hr>
+
+  <div class="muted" style="text-align:center">Terima kasih sudah berbelanja.</div>
+</div>
+
+<div class="aksi">
+  <button type="button" onclick="window.print()">Cetak Struk</button>
+  <a class="button secondary" href="{{ url_for('kasir') }}">Transaksi Baru</a>
+  <a class="button secondary" href="{{ url_for('penjualan') }}">Daftar Penjualan</a>
+</div>
+
+</body>
+</html>

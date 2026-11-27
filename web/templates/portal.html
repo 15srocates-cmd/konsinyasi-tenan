@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Portal Tenan{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2>Portal Tenan — {{ user.nama }}</h2>
+  <div class="muted">Data ini hanya milik Tenan Anda. Bersifat read-only.</div>
+  <div class="grid grid-3" style="margin-top:14px">
+    <div class="stat"><div class="label">Hutang penjualan</div><div class="value">Rp {{ total_hutang | rupiah }}</div></div>
+    <div class="stat"><div class="label">Koreksi retur</div><div class="value">Rp {{ total_koreksi | rupiah }}</div></div>
+    <div class="stat"><div class="label">Sudah dibayar</div><div class="value">Rp {{ dibayar | rupiah }}</div></div>
+  </div>
+  <div class="stat" style="margin-top:12px">
+    <div class="label">Sisa hutang</div>
+    <div class="value">Rp {{ sisa | rupiah }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Stok Titipan Saya</h3>
+  {% if stok %}
+  <table>
+    <thead><tr><th>Kode</th><th>Barang</th><th class="num">Stok</th></tr></thead>
+    <tbody>
+      {% for r in stok %}<tr><td>{{ r.kode }}</td><td>{{ r.barang }}</td><td class="num">{{ r.qty }}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">Belum ada stok.</div>{% endif %}
+</div>
+
+<div class="card">
+  <h3>Penjualan Barang Saya (30 terakhir)</h3>
+  {% if penjualan %}
+  <table>
+    <thead><tr><th>Nota</th><th>Tanggal</th><th>Barang</th><th class="num">Qty</th><th class="num">Penjualan</th><th class="num">Komisi/Margin</th><th class="num">Hutang</th></tr></thead>
+    <tbody>
+      {% for r in penjualan %}
+      <tr>
+        <td>{{ r.nomor }}</td><td>{{ r.tanggal }}</td>
+        <td>{{ r.kode }} — {{ r.barang }}</td>
+        <td class="num">{{ r.qty }}</td>
+        <td class="num">{{ r.subtotal_penjualan | rupiah }}</td>
+        <td class="num">{{ r.subtotal_komisi | rupiah }}</td>
+        <td class="num"><strong>{{ r.subtotal_hutang | rupiah }}</strong></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">Belum ada penjualan.</div>{% endif %}
+</div>
+
+<div class="card">
+  <h3>Settlement Saya</h3>
+  {% if settlement %}
+  <table>
+    <thead><tr><th>Periode</th><th>Jatuh tempo</th><th class="num">Dibayar</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for r in settlement %}
+      <tr>
+        <td>{{ r.periode_awal }} s/d {{ r.periode_akhir }}</td>
+        <td>{{ r.tanggal_jatuh_tempo }}</td>
+        <td class="num">{{ r.total_bayar | rupiah }}</td>
+        <td><span class="badge {{ r.status }}">{{ r.status }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">Belum ada settlement.</div>{% endif %}
+</div>
+
+{% endblock %}

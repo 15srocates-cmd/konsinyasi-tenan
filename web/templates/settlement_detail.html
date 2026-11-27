@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Detail Settlement{% endblock %}
+{% block content %}
+
+<div class="card">
+  <div class="row" style="justify-content:space-between;align-items:start">
+    <div>
+      <h2>Settlement — {{ s.tenan }}</h2>
+      <div class="muted">
+        Periode {{ s.periode_awal }} s/d {{ s.periode_akhir }}
+        · Jatuh tempo {{ s.tanggal_jatuh_tempo }}
+      </div>
+    </div>
+    <div><span class="badge {{ s.status }}">{{ s.status }}</span></div>
+  </div>
+
+  <div class="grid grid-3" style="margin-top:14px">
+    <div class="stat"><div class="label">Penjualan</div><div class="value">Rp {{ s.total_penjualan | rupiah }}</div></div>
+    <div class="stat"><div class="label">Komisi / Margin</div><div class="value">Rp {{ s.total_komisi | rupiah }}</div></div>
+    <div class="stat"><div class="label">Koreksi</div><div class="value">Rp {{ s.total_koreksi | rupiah }}</div></div>
+  </div>
+  <div class="stat" style="margin-top:12px">
+    <div class="label">Total dibayar ke Tenan</div>
+    <div class="value">Rp {{ s.total_bayar | rupiah }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Drill-down per barang</h3>
+  {% if items %}
+  <table>
+    <thead>
+      <tr><th>Kode</th><th>Barang</th><th class="num">Qty</th><th class="num">Penjualan</th><th class="num">Komisi/Margin</th><th class="num">Koreksi</th><th class="num">Netto</th></tr>
+    </thead>
+    <tbody>
+      {% for r in items %}
+      <tr>
+        <td>{{ r.kode }}</td><td>{{ r.barang }}</td>
+        <td class="num">{{ r.qty_terjual }}</td>
+        <td class="num">{{ r.penjualan | rupiah }}</td>
+        <td class="num">{{ r.komisi | rupiah }}</td>
+        <td class="num">{{ r.koreksi | rupiah }}</td>
+        <td class="num"><strong>{{ r.netto | rupiah }}</strong></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">Tidak ada item.</div>{% endif %}
+</div>
+
+<div class="card">
+  <h3>Update Status</h3>
+  <div class="actions">
+    {% if s.status == 'DRAFT' %}
+    <form method="post" action="{{ url_for('settlement_status', sid=s.id) }}">
+      <input type="hidden" name="status" value="DISETUJUI">
+      <button type="submit">Setujui</button>
+    </form>
+    {% elif s.status == 'DISETUJUI' %}
+    <form method="post" action="{{ url_for('settlement_status', sid=s.id) }}">
+      <input type="hidden" name="status" value="DIBAYAR">
+      <button type="submit">Tandai Dibayar</button>
+    </form>
+    {% else %}
+    <div class="muted">Settlement sudah selesai dibayar.</div>
+    {% endif %}
+    <a class="button secondary" href="{{ url_for('settlement') }}">Kembali</a>
+  </div>
+</div>
+
+{% endblock %}

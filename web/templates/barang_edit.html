@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Edit Barang{% endblock %}
+{% block content %}
+
+<div class="card" style="max-width:640px">
+  <h2>Edit Barang Titipan</h2>
+  <div class="muted" style="margin-bottom:10px">
+    Tenan: <strong>{{ tenan }}</strong> — tidak bisa diubah agar data penjualan lama tetap konsisten.
+  </div>
+  <form method="post">
+    <div class="row">
+      <div><label>Kode barang</label><input name="kode" value="{{ r.kode }}" required></div>
+      <div><label>Nama barang</label><input name="nama" value="{{ r.nama }}" required></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div><label>Harga acuan Tenan</label><input name="harga_acuan" type="number" min="0" value="{{ r.harga_acuan_tenan }}"></div>
+      <div><label>Harga jual default</label><input name="harga_jual" type="number" min="0" value="{{ r.harga_jual }}"></div>
+      <div><label>Expired (opsional)</label><input name="expired" type="date" value="{{ r.expired or '' }}"></div>
+    </div>
+    <div style="margin-top:10px">
+      <label style="display:inline-flex;align-items:center;gap:6px">
+        <input type="checkbox" name="aktif" value="1" {% if r.aktif %}checked{% endif %}>
+        Aktif (tampil di kasir & daftar barang)
+      </label>
+    </div>
+    <div class="actions" style="margin-top:14px">
+      <button type="submit">Simpan Perubahan</button>
+      <a class="button secondary" href="{{ url_for('barang') }}">Batal</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

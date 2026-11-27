@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Kasir{% endblock %}
+{% block content %}
+
+<div class="kasir-wrap">
+  <div class="kasir-header">
+    <div>
+      <h2 style="margin-bottom:2px">Kasir</h2>
+      <div class="muted">Pilih produk → periksa pesanan → BAYAR → struk. Tanpa barcode.</div>
+    </div>
+    <div class="muted">Kasir: <strong>{{ nama_kasir }}</strong></div>
+  </div>
+
+  <div class="kasir-layout">
+    <!-- KIRI: daftar produk / input manual -->
+    <section class="card kasir-produk">
+      <div class="tab-bar">
+        <button type="button" class="tab aktif" data-tab="produk" onclick="pilihTab('produk')">Daftar Produk</button>
+        <button type="button" class="tab" data-tab="manual" onclick="pilihTab('manual')">Input Manual</button>
+      </div>
+
+      <div id="panel-produk">
+        <div class="kategori" id="kategori"></div>
+        <input id="cari" class="cari" placeholder="Cari kode atau nama barang..." autofocus>
+        <div id="daftar-barang" class="produk-grid"></div>
+      </div>
+
+      <div id="panel-manual" style="display:none">
+        <div class="muted" style="margin-bottom:8px">
+          Semua barang di toko ini memang dicari manual (tanpa barcode). Ketik kode/nama, lalu klik baris untuk menambah.
+        </div>
+        <input id="cari-manual" class="cari" placeholder="Contoh: SBK-001 atau Suka Chili Oil">
+        <table style="margin-top:10px">
+          <thead><tr><th>Kode</th><th>Nama</th><th class="num">Harga</th><th class="num">Stok</th><th></th></tr></thead>
+          <tbody id="daftar-manual"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TENGAH: detail pesanan -->
+    <section class="card kasir-pesanan">
+      <h2>Detail Pesanan</h2>
+      <div class="muted" style="margin-bottom:8px">Klik produk untuk membuka keranjang.</div>
+      <table>
+        <thead><tr><th>Barang</th><th class="num">Qty</th><th class="num">Harga</th><th class="num">Subtotal</th><th></th></tr></thead>
+        <tbody id="cart-body"></tbody>
+      </table>
+      <div id="kosong" class="empty">Belum ada item pesanan.</div>
+
+      <button type="button" class="secondary" style="width:100%;margin-top:10px"
+              onclick="togglePenyesuaian()">+ Add Charge or Discount</button>
+      <div id="penyesuaian" style="display:none;margin-top:10px">
+        <div class="row">
+          <div><label>Diskon (Rp)</label><input id="diskon" type="number" min="0" value="0" oninput="renderCart()"></div>
+          <div><label>Biaya tambahan (Rp)</label><input id="charge" type="number" min="0" value="0" oninput="renderCart()"></div>
+        </div>
+      </div>
+
+      <div class="total-box">
+        <div><span>Subtotal</span><strong id="subtotal">Rp 0</strong></div>
+        <div><span>Diskon</span><strong id="diskon-tampil">Rp 0</strong></div>
+        <div><span>Biaya tambahan</span><strong id="charge-tampil">Rp 0</strong></div>
+        <div class="total-akhir"><span>Total</span><strong id="total">Rp 0</strong></div>
+      </div>
+
+      <button id="bayar" style="width:100%;margin-top:12px;padding:14px;font-size:15px">BAYAR</button>
+      <div id="pesan" class="muted" style="margin-top:8px"></div>
+    </section>
+
+    <!-- KANAN: QRIS / ringkasan pembayaran -->
+    <section class="card kasir-bayar">
+      <h2>Kode QRIS</h2>
+      <div class="qris-box">
+        <div class="qris-title">QRIS MANUAL</div>
+        <div class="qris-name">{{ nama_kasir }}</div>
+        <div class="muted">Tunjukkan ke pelanggan untuk scan, lalu konfirmasi pembayaran secara manual.</div>
+      </div>
+      <div class="muted" style="margin-top:10px">
+        Metode pembayaran dipilih saat tombol <strong>BAYAR</strong> ditekan:
+        tunai, transfer, atau QRIS manual.
+      </div>
+      <hr>
+      <div class="muted">Struk tidak langsung dicetak. Setelah transaksi tersimpan, tombol cetak tersedia di halaman struk.</div>
+    </section>
+  </div>
+</div>
+
+<!-- Modal pembayaran, mirip layar konfirmasi bayar di POS -->
+<div id="modal-bayar" class="modal" style="display:none">
+  <div class="modal-card">
+    <h2 style="margin-bottom:4px">Pembayaran</h2>
+    <div class="muted">Periksa total lalu pilih metode bayar.</div>
+    <div class="total-box" style="margin-top:12px">
+      <div class="total-akhir"><span>Total bayar</span><strong id="modal-total">Rp 0</strong></div>
+    </div>
+    <div style="margin-top:12px">
+      <label>Metode bayar</label>
+      <select id="metode" onchange="hitungKembali()">
+        <option value="tunai">Tunai</option>
+        <option value="transfer">Transfer</option>
+        <option value="qris">QRIS (manual)</option>
+      </select>
+    </div>
+    <div style="margin-top:10px">
+      <label>Uang diterima</label>
+      <input id="uang" type="number" min="0" value="0" oninput="hitungKembali()">
+    </div>
+    <div class="total-box" style="margin-top:10px">
+      <div class="total-akhir"><span>Kembalian</span><strong id="kembali">Rp 0</strong></div>
+    </div>
+    <div id="modal-pesan" class="muted" style="margin-top:8px"></div>
+    <div class="actions" style="margin-top:14px;justify-content:flex-end">
+      <button type="button" class="secondary" onclick="tutupModal()">Batal</button>
+      <button type="button" id="simpan-bayar">Simpan Transaksi</button>
+    </div>
+  </div>
+</div>
+
+<script>
+window.BARANG = {{ barangs_json | safe }};
+</script>
+<script src="{{ url_for('static', filename='kasir.js') }}"></script>
+{% endblock %}

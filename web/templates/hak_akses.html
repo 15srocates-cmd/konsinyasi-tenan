@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Hak Akses{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2>Hak Akses per Role</h2>
+  <div class="muted">
+    Centang fitur yang boleh diakses setiap role. Perubahan langsung berlaku setelah disimpan.
+    Hak <strong>User</strong> dan <strong>Hak Akses</strong> untuk admin selalu aktif agar admin tidak terkunci.
+  </div>
+  <form method="post" style="margin-top:12px">
+    <table>
+      <thead>
+        <tr>
+          <th>Fitur</th>
+          {% for role in roles %}<th style="text-align:center">{{ role }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for key, label in permissions %}
+        <tr>
+          <td>{{ label }}<div class="muted" style="font-size:11px">{{ key }}</div></td>
+          {% for role in roles %}
+          <td style="text-align:center">
+            {% if role == 'admin' and key in locked %}
+              <span class="badge DIBAYAR">selalu aktif</span>
+              <input type="hidden" name="{{ role }}|{{ key }}" value="1">
+            {% else %}
+              <input type="checkbox" name="{{ role }}|{{ key }}" value="1"
+                     {% if matrix.get((role, key)) %}checked{% endif %}>
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button type="submit" style="margin-top:14px">Simpan Hak Akses</button>
+  </form>
+</div>
+
+{% endblock %}

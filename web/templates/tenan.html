@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Tenan & Kesepakatan{% endblock %}
+{% block content %}
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Tambah Tenan</h2>
+    <form method="post">
+      <div>
+        <label>Kode prefix (mis. SD)</label>
+        <input name="kode_prefix" required maxlength="10" placeholder="SD">
+      </div>
+      <div>
+        <label>Nama Tenan</label>
+        <input name="nama" required placeholder="Sari Dagang">
+      </div>
+      <div class="row">
+        <div><label>Kontak</label><input name="kontak"></div>
+        <div><label>Rekening</label><input name="rekening"></div>
+      </div>
+      <button type="submit">Simpan Tenan</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Atur Kesepakatan</h2>
+    <form method="post" action="{{ url_for('kesepakatan') }}">
+      <div>
+        <label>Tenan</label>
+        <select name="tenan_id" required>
+          {% for r in rows %}
+          <option value="{{ r.id }}">{{ r.nama }} ({{ r.kode_prefix }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="row">
+        <div>
+          <label>Model hutang</label>
+          <select name="model">
+            <option value="B">B — bayar harga jual, dapat komisi</option>
+            <option value="A">A — bayar harga acuan, margin toko</option>
+          </select>
+        </div>
+        <div>
+          <label>Bentuk komisi (Model B)</label>
+          <select name="tipe_komisi">
+            <option value="persen">Persen dari harga jual</option>
+            <option value="tetap">Nominal tetap per pcs</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Nilai komisi</label>
+          <input name="nilai_komisi" type="number" step="0.01" value="0">
+          <div class="muted">Persen: 20 → 20%. Tetap: 2000 → Rp 2.000/pcs</div>
+        </div>
+        <div>
+          <label>Periode settlement</label>
+          <select name="periode_settlement">
+            <option value="mingguan">Mingguan (default)</option>
+            <option value="bulanan">Bulanan</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div><label>Cutoff</label><input name="cutoff" value="minggu" placeholder="minggu / akhir_bulan"></div>
+        <div><label>Jatuh tempo</label><input name="jatuh_tempo" value="senin" placeholder="senin / 5"></div>
+      </div>
+      <button type="submit">Simpan Kesepakatan</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Daftar Tenan</h2>
+  {% if rows %}
+  <table>
+    <thead>
+      <tr>
+        <th>Kode</th><th>Nama</th><th>Kontak</th>
+        <th>Model</th><th>Komisi</th><th>Periode</th><th>Tempo</th><th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.kode_prefix }}</td>
+        <td>{{ r.nama }}</td>
+        <td>{{ r.kontak or '-' }}</td>
+        <td>{{ r.model or '-' }}</td>
+        <td>
+          {% if r.model == 'B' %}
+            {% if r.tipe_komisi == 'persen' %}{{ r.nilai_komisi }}%{% else %}Rp {{ r.nilai_komisi | rupiah }}{% endif %}
+          {% elif r.model == 'A' %}
+            Margin
+          {% else %}-{% endif %}
+        </td>
+        <td>{{ r.periode_settlement or '-' }}</td>
+        <td>{{ r.jatuh_tempo or '-' }}</td>
+        <td>
+          {% if can('tenan.edit') %}
+          <button type="button" class="button small" onclick="bukaEditTenan(this)"
+            data-id="{{ r.id }}"
+            data-kode="{{ r.kode_prefix }}"
+            data-nama="{{ r.nama }}"
+            data-kontak="{{ r.kontak or '' }}"
+            data-model="{{ r.model or 'B' }}"
+            data-tipe="{{ r.tipe_komisi or 'persen' }}"
+            data-nilai="{{ r.nilai_komisi if r.nilai_komisi is not none else 0 }}"
+            data-periode="{{ r.periode_settlement or 'mingguan' }}"
+            data-tempo="{{ r.jatuh_tempo or 'senin' }}">Edit</button>
+          {% else %}-{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">Belum ada Tenan.</div>{% endif %}
+</div>
+
+{% if can('tenan.edit') %}
+<!-- Popup edit: field mengikuti kolom yang tampil di daftar Tenan -->
+<div id="modal-edit-tenan" class="modal" style="display:none"
+     data-base-url="{{ url_for('tenan') }}">
+  <div class="modal-card">
+    <h2 style="margin-bottom:4px">Edit Tenan</h2>
+    <div class="muted">Ubah informasi yang tampil pada daftar Tenan.</div>
+    <form id="form-edit-tenan" method="post">
+      <div class="row" style="margin-top:12px">
+        <div><label>Kode</label><input name="kode_prefix" id="edit-kode" required maxlength="10"></div>
+        <div><label>Nama</label><input name="nama" id="edit-nama" required></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label>Kontak</label><input name="kontak" id="edit-kontak"></div>
+        <div>
+          <label>Model</label>
+          <select name="model" id="edit-model">
+            <option value="B">B — bayar harga jual, dapat komisi</option>
+            <option value="A">A — bayar harga acuan, margin toko</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div>
+          <label>Komisi (bentuk)</label>
+          <select name="tipe_komisi" id="edit-tipe">
+            <option value="persen">Persen dari harga jual</option>
+            <option value="tetap">Nominal tetap per pcs</option>
+          </select>
+        </div>
+        <div><label>Komisi (nilai)</label><input name="nilai_komisi" id="edit-nilai" type="number" step="0.01" min="0"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div>
+          <label>Periode</label>
+          <select name="periode_settlement" id="edit-periode">
+            <option value="mingguan">Mingguan</option>
+            <option value="bulanan">Bulanan</option>
+          </select>
+        </div>
+        <div><label>Tempo</label><input name="jatuh_tempo" id="edit-tempo"></div>
+      </div>
+      <div class="muted" style="margin-top:8px">
+        Kode dipakai sebagai prefix barang. Jika diubah, kode barang Tenan ini ikut disesuaikan.
+      </div>
+      <div class="actions" style="margin-top:14px;justify-content:flex-end">
+        <button type="button" class="secondary" onclick="tutupEditTenan()">Batal</button>
+        <button type="submit">Simpan Perubahan</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+function bukaEditTenan(button) {
+  var d = button.dataset;
+  var modal = document.getElementById('modal-edit-tenan');
+  document.getElementById('form-edit-tenan').action =
+    modal.dataset.baseUrl + '/' + d.id + '/edit';
+  document.getElementById('edit-kode').value = d.kode;
+  document.getElementById('edit-nama').value = d.nama;
+  document.getElementById('edit-kontak').value = d.kontak;
+  document.getElementById('edit-model').value = d.model;
+  document.getElementById('edit-tipe').value = d.tipe;
+  document.getElementById('edit-nilai').value = d.nilai;
+  document.getElementById('edit-periode').value = d.periode;
+  document.getElementById('edit-tempo').value = d.tempo;
+  modal.style.display = 'flex';
+}
+
+function tutupEditTenan() {
+  document.getElementById('modal-edit-tenan').style.display = 'none';
+}
+
+document.getElementById('modal-edit-tenan').addEventListener('click', function (e) {
+  if (e.target === this) tutupEditTenan();
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') tutupEditTenan();
+});
+</script>
+{% endif %}
+
+{% endblock %}

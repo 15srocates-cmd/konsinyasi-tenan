@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login — Konsinyasi Tenan</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main style="max-width:420px;margin-top:60px">
+  <div class="card">
+    <h2>Login Konsinyasi</h2>
+    {% with pesan = get_flashed_messages(with_categories=true) %}
+      {% for kategori, teks in pesan %}
+        <div class="flash {{ kategori }}">{{ teks }}</div>
+      {% endfor %}
+    {% endwith %}
+    <form method="post">
+      <input type="hidden" name="next" value="{{ next }}">
+      <div>
+        <label>Username</label>
+        <input name="username" required autofocus autocomplete="username">
+      </div>
+      <div>
+        <label>Password</label>
+        <input name="password" type="password" required autocomplete="current-password">
+      </div>
+      <button type="submit" style="margin-top:6px">Masuk</button>
+    </form>
+    <div class="muted" style="margin-top:14px">
+      Akun contoh:<br>
+      <code>admin / admin123</code> · <code>kasir / kasir123</code><br>
+      <code>manajer / manajer123</code> · <code>tenan1 / tenan123</code>
+    </div>
+  </div>
+</main>
+</body>
+</html>

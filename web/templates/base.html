@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Konsinyasi Tenan{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header>
+  <div class="row" style="justify-content:space-between;align-items:center">
+    <h1>Konsinyasi Tenan — Web Admin</h1>
+    {% if user %}
+    <div class="user-box">
+      <span>{{ user.nama }} <span class="badge">{{ user.role }}</span></span>
+      <a href="{{ url_for('profil') }}">Profil</a>
+      <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+    {% endif %}
+  </div>
+  <nav>
+    {% if user %}
+      {% if user.role == 'tenan' %}
+      <a href="{{ url_for('portal') }}">Portal Tenan</a>
+      {% else %}
+      {% if can('dashboard.view') %}<a href="{{ url_for('dashboard') }}">Dashboard</a>{% endif %}
+      {% if can('tenan.view') %}<a href="{{ url_for('tenan') }}">Tenan & Kesepakatan</a>{% endif %}
+      {% if can('barang.view') %}<a href="{{ url_for('barang') }}">Barang Titipan</a>{% endif %}
+      {% if can('penerimaan.view') %}<a href="{{ url_for('penerimaan') }}">Penerimaan</a>{% endif %}
+      {% if can('penjualan.view') %}<a href="{{ url_for('penjualan') }}">Penjualan</a>{% endif %}
+      {% if can('kasir.use') %}<a href="{{ url_for('kasir') }}">Kasir</a>{% endif %}
+      {% if can('retur.view') %}<a href="{{ url_for('retur') }}">Retur</a>{% endif %}
+      {% if can('settlement.view') %}<a href="{{ url_for('settlement') }}">Settlement</a>{% endif %}
+      {% if can('users.view') %}<a href="{{ url_for('users') }}">User</a>{% endif %}
+      {% if can('permissions.view') %}<a href="{{ url_for('hak_akses') }}">Hak Akses</a>{% endif %}
+      {% endif %}
+    {% endif %}
+  </nav>
+</header>
+<main>
+  {% with pesan = get_flashed_messages(with_categories=true) %}
+    {% for kategori, teks in pesan %}
+      <div class="flash {{ kategori }}">{{ teks }}</div>
+    {% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

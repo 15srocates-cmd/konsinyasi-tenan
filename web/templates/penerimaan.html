@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Penerimaan Titipan{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2>Catat Penerimaan Titipan</h2>
+  <form method="post">
+    <div class="row">
+      <div>
+        <label>Tenan</label>
+        <select name="tenan_id" required>
+          {% for t in tenans %}<option value="{{ t.id }}">{{ t.nama }} ({{ t.kode_prefix }})</option>{% endfor %}
+        </select>
+      </div>
+      <div><label>Nomor nota</label><input name="nomor" required placeholder="TER-SD-002"></div>
+      <div><label>Tanggal</label><input name="tanggal" type="date" value="{{ today if today is defined else '' }}"></div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Barang</label>
+        <select name="barang_id" required>
+          {% for b in barangs %}
+          <option value="{{ b.id }}">{{ b.kode }} — {{ b.nama }} ({{ b.tenan }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div><label>Qty</label><input name="qty" type="number" min="1" value="1" required></div>
+      <div><label>Expired (opsional)</label><input name="expired" type="date"></div>
+    </div>
+    <div><label>Catatan</label><input name="catatan"></div>
+    <button type="submit">Simpan Penerimaan</button>
+  </form>
+  <div class="muted" style="margin-top:8px">
+    Versi uji coba: satu nota = satu jenis barang. Mutasi <code>TERIMA</code> otomatis menambah stok.
+  </div>
+</div>
+
+<div class="card">
+  <h2>Riwayat Penerimaan</h2>
+  {% if rows %}
+  <table>
+    <thead><tr><th>Nomor</th><th>Tanggal</th><th>Tenan</th><th class="num">Item</th><th class="num">Total qty</th><th>Catatan</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.nomor }}</td><td>{{ r.tanggal }}</td><td>{{ r.tenan }}</td>
+        <td class="num">{{ r.jumlah_item }}</td><td class="num">{{ r.total_qty or 0 }}</td>
+        <td>{{ r.catatan or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">Belum ada penerimaan.</div>{% endif %}
+</div>
+
+{% endblock %}

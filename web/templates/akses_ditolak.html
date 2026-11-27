@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Akses Ditolak{% endblock %}
+{% block content %}
+
+<div class="card" style="max-width:640px">
+  <h2>Akses tidak tersedia</h2>
+  <p>
+    Akun <strong>{{ user.nama }}</strong> ({{ user.role }}) tidak memiliki kewenangan
+    untuk halaman yang diminta. Hak akses bisa diubah oleh admin lewat menu <strong>Hak Akses</strong>.
+  </p>
+
+  {% if menu %}
+  <h3>Menu yang masih bisa Anda buka</h3>
+  <div class="actions">
+    {% for endpoint, label in menu %}
+    <a class="button" href="{{ url_for(endpoint) }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">
+    Tidak ada menu yang aktif untuk role ini. Silakan hubungi admin atau logout.
+  </div>
+  {% endif %}
+
+  <div class="actions" style="margin-top:16px">
+    <a class="button secondary" href="{{ url_for('profil') }}">Profil</a>
+    <a class="button secondary" href="{{ url_for('logout') }}">Logout</a>
+  </div>
+</div>
+
+{% endblock %}

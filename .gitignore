@@ -1,0 +1,25 @@
+# Database berisi data nyata & hak akses — jangan pernah di-commit
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Lingkungan / rahasia
+.env
+.venv/
+venv/
+
+# File sementara
+*.tmp
+*.log
+
+# Proyek lain di workspace yang sama (bukan bagian konsinyasi)
+bp3-app/
+bp3-dashboard/
+dpp-pks-monitor/
+news-agent/
+road-route-agent/
+sosmed-agent/

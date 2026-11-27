@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Profil{% endblock %}
+{% block content %}
+
+<div class="card" style="max-width:520px">
+  <h2>Profil Pengguna</h2>
+  <table>
+    <tbody>
+      <tr><th>Username</th><td>{{ user.username }}</td></tr>
+      <tr><th>Nama</th><td>{{ user.nama }}</td></tr>
+      <tr><th>Role</th><td>{{ user.role }}</td></tr>
+      {% if user.tenan_id %}<tr><th>Terhubung ke</th><td>Tenan</td></tr>{% endif %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card" style="max-width:520px">
+  <h3>Ganti Password</h3>
+  <form method="post">
+    <div>
+      <label>Password baru (minimal 4 karakter)</label>
+      <input name="password_baru" type="password" minlength="4" required>
+    </div>
+    <button type="submit">Simpan Password</button>
+  </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Retur{% endblock %}
+{% block content %}
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Retur Konsumen</h2>
+    <form method="post">
+      <input type="hidden" name="jenis_form" value="konsumen">
+      <div>
+        <label>Item penjualan</label>
+        <select name="penjualan_item_id" required>
+          {% for r in item_jual %}
+          <option value="{{ r.id }}">{{ r.nota }} — {{ r.kode }} {{ r.barang }} ({{ r.tenan }}, {{ r.qty }} pcs @ {{ r.harga_jual_saat_jual | rupiah }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="row">
+        <div><label>Qty</label><input name="qty" type="number" min="1" value="1" required></div>
+        <div>
+          <label>Kondisi</label>
+          <select name="kondisi">
+            <option value="bisa_dijual">Masih bisa dijual → masuk stok</option>
+            <option value="tidak_bisa_dijual">Tidak bisa dijual → retur ke Tenan</option>
+          </select>
+        </div>
+      </div>
+      <div><label>Tanggal</label><input name="tanggal" type="date" value="{{ today }}"></div>
+      <div><label>Alasan</label><input name="alasan"></div>
+      <button type="submit">Simpan Retur Konsumen</button>
+    </form>
+    <div class="muted" style="margin-top:8px">
+      Penjualan, hutang, dan komisi otomatis dikoreksi.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Retur ke Tenan (barang tak laku)</h2>
+    <form method="post">
+      <input type="hidden" name="jenis_form" value="tenan">
+      <div>
+        <label>Barang</label>
+        <select name="barang_id" required>
+          {% for b in barangs %}
+          <option value="{{ b.id }}">{{ b.kode }} — {{ b.nama }} ({{ b.tenan }}, stok {{ b.stok }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="row">
+        <div><label>Qty</label><input name="qty" type="number" min="1" value="1" required></div>
+        <div><label>Tanggal</label><input name="tanggal" type="date" value="{{ today }}"></div>
+      </div>
+      <div><label>Alasan</label><input name="alasan" placeholder="Tidak laku / expired"></div>
+      <button type="submit">Simpan Retur Tenan</button>
+    </form>
+    <div class="muted" style="margin-top:8px">
+      Stok berkurang, tetapi tidak ada uang yang berubah karena barang belum terjual.
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Riwayat Retur Konsumen</h2>
+    {% if retur_konsumen_rows %}
+    <table>
+      <thead><tr><th>Nota</th><th>Tanggal</th><th>Kondisi</th><th class="num">Qty</th></tr></thead>
+      <tbody>
+        {% for r in retur_konsumen_rows %}
+        <tr><td>{{ r.nota }}</td><td>{{ r.tanggal }}</td><td>{{ r.kondisi }}</td><td class="num">{{ r.total_qty }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<div class="empty">Belum ada retur konsumen.</div>{% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Riwayat Retur ke Tenan</h2>
+    {% if retur_tenan_rows %}
+    <table>
+      <thead><tr><th>Nomor</th><th>Tanggal</th><th>Tenan</th><th class="num">Qty</th><th>Alasan</th></tr></thead>
+      <tbody>
+        {% for r in retur_tenan_rows %}
+        <tr><td>{{ r.nomor }}</td><td>{{ r.tanggal }}</td><td>{{ r.tenan }}</td><td class="num">{{ r.total_qty }}</td><td>{{ r.alasan or '-' }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<div class="empty">Belum ada retur ke Tenan.</div>{% endif %}
+  </div>
+</div>
+
+{% endblock %}

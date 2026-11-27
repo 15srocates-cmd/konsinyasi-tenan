@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Settlement{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2>Buat Settlement</h2>
+  <form method="post">
+    <div class="row">
+      <div>
+        <label>Tenan</label>
+        <select name="tenan_id" required>
+          {% for t in tenans %}<option value="{{ t.id }}">{{ t.nama }} ({{ t.kode_prefix }})</option>{% endfor %}
+        </select>
+      </div>
+      <div><label>Periode awal</label><input name="periode_awal" type="date" value="{{ default_awal }}" required></div>
+      <div><label>Periode akhir</label><input name="periode_akhir" type="date" value="{{ default_akhir }}" required></div>
+    </div>
+    <div class="muted">
+      Default periode mingguan (Senin–Minggu). Bisa diubah manual untuk Tenan bulanan.
+    </div>
+    <button type="submit" style="margin-top:10px">Rekap Settlement</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Daftar Settlement</h2>
+  {% if rows %}
+  <table>
+    <thead>
+      <tr>
+        <th>Tenan</th><th>Periode</th><th>Jatuh tempo</th>
+        <th class="num">Penjualan</th><th class="num">Komisi/Margin</th>
+        <th class="num">Koreksi</th><th class="num">Dibayar</th><th>Status</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.tenan }}</td>
+        <td>{{ r.periode_awal }} s/d {{ r.periode_akhir }}</td>
+        <td>{{ r.tanggal_jatuh_tempo }}</td>
+        <td class="num">{{ r.total_penjualan | rupiah }}</td>
+        <td class="num">{{ r.total_komisi | rupiah }}</td>
+        <td class="num">{{ r.total_koreksi | rupiah }}</td>
+        <td class="num"><strong>{{ r.total_bayar | rupiah }}</strong></td>
+        <td><span class="badge {{ r.status }}">{{ r.status }}</span></td>
+        <td><a class="button" href="{{ url_for('settlement_detail', sid=r.id) }}">Detail</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">Belum ada settlement.</div>{% endif %}
+</div>
+
+{% endblock %}
