@@ -16,7 +16,7 @@ Aplikasi web Flask + SQLite sudah berjalan dan diuji. Fitur yang sudah ada:
 - Edit barang: nama, kode, harga acuan, harga jual, expired, status aktif
 - Edit Tenan lewat **popup** pada daftar Tenan: kode, nama, kontak, model, komisi, periode, tempo; perubahan kode otomatis menyesuaikan kode barang Tenan tersebut
 - Dashboard tidak lagi menampilkan stok titipan; diganti grafik pendapatan 7 hari terakhir (komisi/margin vs penjualan) + stat pendapatan hari ini
-- Role `tenan` sebagai Pengisi Tenan: input titipan berstatus `PENDING`, terbatas pada Tenan sendiri
+- Role `tenan` sebagai Pengisi Tenan: input titipan berstatus `PENDING`, terbatas pada Tenan sendiri; bisa mengusulkan barang baru yang aktif setelah disetujui admin
 - Kartu **Menunggu Validasi** di Dashboard admin untuk approve/reject; tidak ada halaman Waiting Room terpisah
 - Laporan Harian Tenan (`/portal/laporan-harian`): barang habis, reject/rusak/ditolak, expired; hanya data Tenan sendiri
 - Redirect aman: jika `dashboard.view` kasir dicabut, `/` langsung ke `/kasir`, tidak loop

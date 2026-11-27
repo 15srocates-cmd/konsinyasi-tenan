@@ -163,7 +163,9 @@ CREATE TABLE IF NOT EXISTS penerimaan_item (
   qty                       INTEGER NOT NULL CHECK (qty > 0),
   expired                   DATE,
   harga_acuan_saat_terima   BIGINT NOT NULL DEFAULT 0
-                              CHECK (harga_acuan_saat_terima >= 0)
+                              CHECK (harga_acuan_saat_terima >= 0),
+  kode_usulan               VARCHAR(50),
+  nama_usulan               VARCHAR(200)
 );
 
 -- ------------------------------------------------------------

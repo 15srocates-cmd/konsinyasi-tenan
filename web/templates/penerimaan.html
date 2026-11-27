@@ -22,22 +22,32 @@
     </div>
     <div class="row">
       <div>
-        <label>Barang</label>
-        <select name="barang_id" required>
+        <label>Barang yang sudah ada</label>
+        <select name="barang_id">
+          <option value="">— Pilih barang —</option>
           {% for b in barangs %}
-          <option value="{{ b.id }}">{{ b.kode }} — {{ b.nama }}{% if not mode_tenan %} ({{ b.tenan }}){% endif %}</option>
+          <option value="{{ b.id }}">{{ b.kode }} — {{ b.nama }}{% if not b.aktif %} (belum aktif){% endif %}{% if not mode_tenan %} ({{ b.tenan }}){% endif %}</option>
           {% endfor %}
         </select>
+        <div class="muted" style="margin-top:4px">Atau isi kolom usulan barang baru di bawah (pilih salah satu).</div>
       </div>
       <div><label>Qty</label><input name="qty" type="number" min="1" value="1" required></div>
       <div><label>Expired (opsional)</label><input name="expired" type="date"></div>
+    </div>
+    <div class="row">
+      <div><label>Kode barang baru</label><input name="kode_barang_baru" placeholder="SBK-019"></div>
+      <div><label>Nama barang baru</label><input name="nama_barang_baru" placeholder="Nama produk"></div>
+      <div><label>Harga acuan Tenan</label><input name="harga_acuan_baru" type="number" min="0" value="0"></div>
+      <div><label>Harga jual</label><input name="harga_jual_baru" type="number" min="0" value="0"></div>
     </div>
     <div><label>Catatan</label><input name="catatan"></div>
     <button type="submit">{{ 'Kirim Pengajuan' if mode_tenan else 'Simpan Pengajuan' }}</button>
   </form>
   <div class="muted" style="margin-top:8px">
-    Versi uji coba: satu nota = satu jenis barang. Pengajuan berstatus
-    <span class="badge PENDING">PENDING</span> dan belum menambah stok sampai admin menyetujui di Dashboard.
+    Versi uji coba: satu nota = satu jenis barang. Barang baru yang diusulkan
+    disimpan belum aktif dan hanya muncul setelah admin menyetujui. Pengajuan
+    berstatus <span class="badge PENDING">PENDING</span> dan belum menambah stok
+    sampai admin menyetujui di Dashboard.
   </div>
 </div>
 
@@ -60,7 +70,12 @@
         {% if not mode_tenan %}<td>{{ r.pengisi or '-' }}</td>{% endif %}
         <td class="num">{{ r.jumlah_item }}</td><td class="num">{{ r.total_qty or 0 }}</td>
         <td><span class="badge {{ r.status }}">{{ r.status }}</span></td>
-        <td>{{ r.alasan_tolak or r.catatan or '-' }}</td>
+        <td>
+          {{ r.alasan_tolak or r.catatan or '-' }}
+          {% if r.kode_usulan %}
+          <div><span class="badge DRAFT">Usulan</span> {{ r.kode_usulan }} — {{ r.nama_usulan }}</div>
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>

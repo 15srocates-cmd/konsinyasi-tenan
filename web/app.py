@@ -563,6 +563,12 @@ def init_db(reset: bool = False) -> None:
         "WHERE status IS NULL OR status = ''"
     )
 
+    # Migrasi ringan: database lama belum punya usulan barang baru.
+    kolom_item = {r["name"] for r in db.execute("PRAGMA table_info(penerimaan_item)")}
+    for nama in ("kode_usulan", "nama_usulan"):
+        if nama not in kolom_item:
+            db.execute(f"ALTER TABLE penerimaan_item ADD COLUMN {nama} TEXT")
+
     seed_permissions(db)
 
     # Database lama menyimpan tenan|penerimaan.view = 0. Aktifkan hak-hak baru
@@ -634,6 +640,10 @@ def catat_penerimaan(db, tenan_id, nomor, tanggal, items, catatan="",
 
     Status PENDING tidak langsung mengubah stok. Stok hanya bertambah saat
     admin menyetujui lewat validasi_penerimaan().
+
+    Item boleh berupa usulan barang baru (tanpa ``barang_id``). Barang
+    tersebut dibuat dengan status ``aktif = 0`` supaya tidak langsung
+    muncul di master/kasir; admin mengaktifkannya saat menyetujui.
     """
     if status not in ("PENDING", "DISETUJUI", "DITOLAK"):
         raise ValueError("Status penerimaan tidak dikenal")
@@ -650,17 +660,57 @@ def catat_penerimaan(db, tenan_id, nomor, tanggal, items, catatan="",
         ),
     )
     for item in items:
-        barang = db.execute("SELECT * FROM barang_titipan WHERE id = ?", (item["barang_id"],)).fetchone()
-        if not barang or barang["tenan_id"] != tenan_id:
-            raise ValueError("Barang tidak cocok dengan Tenan yang dipilih")
+        kode_usulan = (item.get("kode_usulan") or "").strip().upper() or None
+        nama_usulan = (item.get("nama_usulan") or "").strip() or None
+        expired = item.get("expired") or None
+
+        if item.get("barang_id"):
+            barang = db.execute(
+                "SELECT * FROM barang_titipan WHERE id = ?", (item["barang_id"],)
+            ).fetchone()
+            if not barang or barang["tenan_id"] != tenan_id:
+                raise ValueError("Barang tidak cocok dengan Tenan yang dipilih")
+            if kode_usulan:
+                raise ValueError("Pilih barang lama atau isi usulan barang baru, bukan keduanya")
+        else:
+            if not kode_usulan or not nama_usulan:
+                raise ValueError("Pilih barang yang sudah ada atau ajukan barang baru")
+            if db.execute(
+                "SELECT 1 FROM barang_titipan WHERE tenan_id = ? AND kode = ?",
+                (tenan_id, kode_usulan),
+            ).fetchone():
+                raise ValueError(f"Kode barang {kode_usulan} sudah dipakai Tenan ini")
+            bid = uid()
+            db.execute(
+                """INSERT INTO barang_titipan
+                   (id, tenan_id, kode, nama, harga_acuan_tenan, harga_jual, expired, aktif)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 0)""",
+                (
+                    bid, tenan_id, kode_usulan, nama_usulan,
+                    int(item.get("harga_acuan") or 0),
+                    int(item.get("harga_jual") or 0), expired,
+                ),
+            )
+            barang = db.execute(
+                "SELECT * FROM barang_titipan WHERE id = ?", (bid,)
+            ).fetchone()
+            if status == "DISETUJUI":
+                db.execute(
+                    "UPDATE barang_titipan SET aktif = 1 WHERE id = ?", (bid,)
+                )
+
         qty = int(item["qty"])
         if qty <= 0:
             raise ValueError("Jumlah harus lebih dari 0")
         db.execute(
             """INSERT INTO penerimaan_item
-               (id, penerimaan_id, barang_id, qty, expired, harga_acuan_saat_terima)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (uid(), pid, barang["id"], qty, item.get("expired") or None, barang["harga_acuan_tenan"]),
+               (id, penerimaan_id, barang_id, qty, expired,
+                harga_acuan_saat_terima, kode_usulan, nama_usulan)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                uid(), pid, barang["id"], qty, expired,
+                barang["harga_acuan_tenan"], kode_usulan, nama_usulan,
+            ),
         )
         if status == "DISETUJUI":
             tambah_mutasi(db, barang, "TERIMA", qty, "penerimaan", pid, tanggal)
@@ -687,6 +737,11 @@ def validasi_penerimaan(db, pid, aksi, validator_id, alasan=""):
             barang = db.execute(
                 "SELECT * FROM barang_titipan WHERE id = ?", (item["barang_id"],)
             ).fetchone()
+            if item["kode_usulan"]:
+                db.execute(
+                    "UPDATE barang_titipan SET aktif = 1 WHERE id = ?",
+                    (item["barang_id"],),
+                )
             tambah_mutasi(
                 db, barang, "TERIMA", item["qty"], "penerimaan", pid, row["tanggal"]
             )
@@ -1160,7 +1215,9 @@ def dashboard():
     if can("validasi.view"):
         pending_validasi = db.execute(
             """SELECT p.*, t.nama AS tenan, u.nama AS pengisi,
-                      COUNT(pi.id) AS jumlah_item, SUM(pi.qty) AS total_qty
+                      COUNT(pi.id) AS jumlah_item, SUM(pi.qty) AS total_qty,
+                      MAX(pi.kode_usulan) AS kode_usulan,
+                      MAX(pi.nama_usulan) AS nama_usulan
                FROM penerimaan p
                JOIN tenan t ON t.id = p.tenan_id
                LEFT JOIN users u ON u.id = p.created_by
@@ -1439,9 +1496,15 @@ def penerimaan():
                 tenan_id,
                 request.form["nomor"].strip(),
                 request.form.get("tanggal") or today(),
-                [{"barang_id": request.form["barang_id"],
-                  "qty": request.form["qty"],
-                  "expired": request.form.get("expired")}],
+                [{
+                    "barang_id": request.form.get("barang_id") or None,
+                    "qty": request.form["qty"],
+                    "expired": request.form.get("expired"),
+                    "kode_usulan": request.form.get("kode_barang_baru", ""),
+                    "nama_usulan": request.form.get("nama_barang_baru", ""),
+                    "harga_acuan": request.form.get("harga_acuan_baru", 0),
+                    "harga_jual": request.form.get("harga_jual_baru", 0),
+                }],
                 request.form.get("catatan", ""),
                 created_by=user["id"],
                 status="PENDING",
@@ -1460,7 +1523,9 @@ def penerimaan():
         params.append(tenan_id_user)
     rows = db.execute(
         f"""SELECT p.*, t.nama AS tenan, u.nama AS pengisi,
-                   COUNT(pi.id) AS jumlah_item, SUM(pi.qty) AS total_qty
+                   COUNT(pi.id) AS jumlah_item, SUM(pi.qty) AS total_qty,
+                   MAX(pi.kode_usulan) AS kode_usulan,
+                   MAX(pi.nama_usulan) AS nama_usulan
             FROM penerimaan p
             JOIN tenan t ON t.id = p.tenan_id
             LEFT JOIN users u ON u.id = p.created_by
@@ -1474,10 +1539,12 @@ def penerimaan():
         tenans = db.execute(
             "SELECT * FROM tenan WHERE id = ?", (tenan_id_user,)
         ).fetchall()
+        # Barang usulan yang ditolak tetap tampil di form Tenan yang bersangkutan
+        # supaya bisa diajukan ulang tanpa duplikat kode.
         barangs = db.execute(
             """SELECT b.*, t.nama AS tenan FROM barang_titipan b
                JOIN tenan t ON t.id = b.tenan_id
-               WHERE b.aktif = 1 AND b.tenan_id = ?
+               WHERE b.tenan_id = ?
                ORDER BY b.kode""",
             (tenan_id_user,),
         ).fetchall()

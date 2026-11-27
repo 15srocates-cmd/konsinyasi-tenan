@@ -45,7 +45,13 @@
         <td>{{ r.nomor }}</td>
         <td class="num">{{ r.jumlah_item }}</td>
         <td class="num">{{ r.total_qty or 0 }}</td>
-        <td>{{ r.catatan or '-' }}</td>
+        <td>
+          {{ r.catatan or '-' }}
+          {% if r.kode_usulan %}
+          <div><span class="badge DRAFT">Usulan baru</span>
+            {{ r.kode_usulan }} — {{ r.nama_usulan }}</div>
+          {% endif %}
+        </td>
         <td>
           <div class="actions">
             <form method="post">

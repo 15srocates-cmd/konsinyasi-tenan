@@ -340,7 +340,7 @@ with app.app_context():
         "SELECT id FROM tenan WHERE kode_prefix = 'SBK'"
     ).fetchone()["id"]
     bid_sbk = barang["SBK-001"]["id"]
-    ambil_stok = """SELECT COALESCE(qty, 0) FROM stok_titipan
+    ambil_stok = """SELECT COALESCE(SUM(qty), 0) FROM stok_titipan
                     WHERE tenan_id = ? AND barang_id = ?"""
     stok_awal = db.execute(ambil_stok, (tid_sbk, bid_sbk)).fetchone()[0]
     tanggal_kedaluwarsa = (date.today() - timedelta(days=1)).isoformat()
@@ -464,6 +464,63 @@ assert b"Ditolak validasi" in res.data
 assert b"Rusak saat pengiriman" in res.data
 assert b"Daftar Barang Expired" in res.data
 assert tanggal_kedaluwarsa.encode() in res.data
+
+# --- Usulan barang baru: nonaktif saat pending, aktif setelah approve ---
+res = tenan.post(
+    "/penerimaan",
+    data={
+        "nomor": "TER-SMOKE-BARU-001",
+        "tanggal": today(),
+        "barang_id": "",
+        "kode_barang_baru": "SBK-019",
+        "nama_barang_baru": "Uji Minuman Baru",
+        "harga_acuan_baru": "6000",
+        "harga_jual_baru": "10000",
+        "qty": "2",
+        "expired": "",
+        "catatan": "Usulan barang baru",
+    },
+    follow_redirects=True,
+)
+print("tenan POST usulan barang baru ->", res.status_code)
+assert res.status_code == 200
+
+with app.app_context():
+    db = get_db()
+    usulan = db.execute(
+        "SELECT * FROM penerimaan WHERE nomor = ?", ("TER-SMOKE-BARU-001",)
+    ).fetchone()
+    assert usulan["status"] == "PENDING"
+    barang_baru = db.execute(
+        "SELECT * FROM barang_titipan WHERE kode = ?", ("SBK-019",)
+    ).fetchone()
+    assert barang_baru and barang_baru["aktif"] == 0
+    print("Barang usulan sebelum approve:", dict(barang_baru))
+    stok_usulan_awal = db.execute(
+        ambil_stok, (tid_sbk, barang_baru["id"])
+    ).fetchone()[0]
+    assert stok_usulan_awal == 0
+
+res = client.get("/")
+assert b"SBK-019" in res.data, "Dashboard admin tidak menampilkan usulan barang"
+res = client.post(
+    "/",
+    data={"aksi": "approve", "penerimaan_id": usulan["id"]},
+    follow_redirects=True,
+)
+print("admin approve usulan barang ->", res.status_code)
+assert res.status_code == 200
+
+with app.app_context():
+    db = get_db()
+    barang_baru = db.execute(
+        "SELECT * FROM barang_titipan WHERE kode = ?", ("SBK-019",)
+    ).fetchone()
+    assert barang_baru["aktif"] == 1
+    stok_usulan_akhir = db.execute(
+        ambil_stok, (tid_sbk, barang_baru["id"])
+    ).fetchone()[0]
+    assert stok_usulan_akhir == 2, (stok_usulan_awal, stok_usulan_akhir)
 
 # --- Admin mengubah hak akses role kasir ---
 def semua_hak():

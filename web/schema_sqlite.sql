@@ -110,7 +110,9 @@ CREATE TABLE IF NOT EXISTS penerimaan_item (
   barang_id               TEXT NOT NULL REFERENCES barang_titipan(id),
   qty                     INTEGER NOT NULL CHECK (qty > 0),
   expired                 TEXT,
-  harga_acuan_saat_terima INTEGER NOT NULL DEFAULT 0
+  harga_acuan_saat_terima INTEGER NOT NULL DEFAULT 0,
+  kode_usulan             TEXT,
+  nama_usulan             TEXT
 );
 
 CREATE TABLE IF NOT EXISTS penjualan (

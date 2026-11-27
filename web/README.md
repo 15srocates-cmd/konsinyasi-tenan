@@ -101,10 +101,10 @@ Menu **Hak Akses** (khusus admin) berisi matriks fitur × role. Admin bisa mence
 ## Alur Pengisi Tenan & Validasi Admin
 
 1. Login sebagai `tenan1`, buka **Input Titipan**.
-2. Tenan tidak bisa memilih Tenan lain; form hanya menampilkan barang milik Tenan yang bersangkutan. Isi nomor nota, barang, qty, expired (opsional), dan catatan.
+2. Tenan tidak bisa memilih Tenan lain; form hanya menampilkan barang milik Tenan yang bersangkutan. Isi nomor nota, barang, qty, expired (opsional), dan catatan. Untuk produk yang belum ada, kosongkan pilihan barang lalu isi kode, nama, harga acuan, dan harga jual pada kolom **usulan barang baru**.
 3. Pengajuan tersimpan berstatus `PENDING`. **Stok belum berubah.**
 4. Login sebagai `admin`, buka **Dashboard**. Kartu **Menunggu Validasi** berisi semua pengajuan.
-5. Klik **Setujui** → status `DISETUJUI`, stok bertambah lewat mutasi `TERIMA`; atau isi alasan lalu **Tolak** → status `DITOLAK`, stok tidak berubah.
+5. Klik **Setujui** → status `DISETUJUI`, stok bertambah lewat mutasi `TERIMA`; barang yang diusulkan ikut aktif. Atau isi alasan lalu **Tolak** → status `DITOLAK`, stok tidak berubah dan barang usulan tetap nonaktif (bisa diajukan ulang).
 6. Riwayat di halaman Penerimaan menampilkan status dan alasan penolakan.
 
 Data lama yang sudah ada otomatis dianggap `DISETUJUI` saat migrasi, supaya stok lama tidak berubah.
