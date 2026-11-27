@@ -94,7 +94,7 @@ Menu **Hak Akses** (khusus admin) berisi matriks fitur × role. Admin bisa mence
 - Contoh: cabut centang `kasir.use` pada role kasir → kasir langsung tidak bisa membuka menu Kasir
 - Jika `dashboard.view` dicabut, membuka `/` tidak menyebabkan redirect berulang; aplikasi otomatis mengarahkan ke menu pertama yang masih aktif (misalnya `/kasir`). Jika tidak ada menu aktif, muncul halaman **Akses Ditolak** berisi tautan logout/profil.
 
-> `app.secret_key` masih hardcoded untuk uji coba. Ganti dengan environment variable sebelum dipakai produksi.
+> `app.secret_key` bisa di-set lewat environment variable `KONSINYASI_SECRET_KEY`. Nilai bawaan hanya untuk uji coba; wajib diganti sebelum dipakai produksi.
 
 ## Fitur Kasir (alur bergaya Youtap POS)
 
@@ -195,3 +195,14 @@ Query, formula komisi, dan hampir seluruh struktur tabel sudah identik.
   - Model A → `komisi_per_unit` = margin (`harga_jual - harga_acuan`)
 - `stok_titipan` bukan sumber kebenaran; `mutasi_titipan` adalah ledger-nya
 - Retur setelah settlement tidak mengubah settlement lama
+
+## Sinkronisasi GitHub
+
+Repo Git sudah disiapkan di folder induk (`D:\OneDrive\Documents\Default Project`) dengan branch `main`.
+
+```powershell
+cd "D:\OneDrive\Documents\Default Project"
+powershell -ExecutionPolicy Bypass -File .\sync-github.ps1 -Pesan "Ringkasan perubahan"
+```
+
+Script itu otomatis menjalankan `git add`, `git commit`, lalu `git push origin main` (jika remote `origin` sudah terhubung). File `web/konsinyasi.db` sengaja dikecualikan oleh `.gitignore` karena berisi data nyata dan hak akses user.
