@@ -4,7 +4,10 @@
 
 <div class="card">
   <h2>Portal Tenan — {{ user.nama }}</h2>
-  <div class="muted">Data ini hanya milik Tenan Anda. Bersifat read-only.</div>
+  <div class="muted">
+    Data ini hanya milik Tenan Anda. Input titipan ada di menu
+    <a href="{{ url_for('penerimaan') }}">Input Titipan</a>.
+  </div>
   <div class="grid grid-3" style="margin-top:14px">
     <div class="stat"><div class="label">Hutang penjualan</div><div class="value">Rp {{ total_hutang | rupiah }}</div></div>
     <div class="stat"><div class="label">Koreksi retur</div><div class="value">Rp {{ total_koreksi | rupiah }}</div></div>
@@ -13,6 +16,14 @@
   <div class="stat" style="margin-top:12px">
     <div class="label">Sisa hutang</div>
     <div class="value">Rp {{ sisa | rupiah }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Laporan Harian</h3>
+  <div class="muted">Barang habis, barang reject/rusak, dan barang expired menurut tanggal.</div>
+  <div style="margin-top:10px">
+    <a class="button small" href="{{ url_for('laporan_harian') }}">Buka Laporan Harian</a>
   </div>
 </div>
 

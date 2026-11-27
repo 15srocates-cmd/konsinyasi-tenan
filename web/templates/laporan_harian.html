@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Laporan Harian — {{ user.nama }}{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2>Laporan Harian — {{ user.nama }}</h2>
+  <div class="muted">Hanya data milik Tenan Anda.</div>
+  <form method="get" class="inline" style="margin-top:12px">
+    <div>
+      <label>Tanggal laporan</label>
+      <input name="tanggal" type="date" value="{{ tanggal }}" required>
+    </div>
+    <div style="flex:0 0 auto"><button type="submit">Tampilkan</button></div>
+    <div style="flex:0 0 auto"><a class="button secondary" href="{{ url_for('portal') }}">Kembali ke Portal</a></div>
+  </form>
+</div>
+
+<div class="grid grid-3">
+  <div class="card stat"><div class="label">Barang habis</div><div class="value">{{ habis | length }}</div></div>
+  <div class="card stat"><div class="label">Barang reject / rusak</div><div class="value">{{ reject | length }}</div></div>
+  <div class="card stat"><div class="label">Barang expired</div><div class="value">{{ expired | length }}</div></div>
+</div>
+
+<div class="card">
+  <h3>Daftar Barang Habis</h3>
+  {% if habis %}
+  <table>
+    <thead><tr><th>Kode</th><th>Barang</th><th class="num">Sisa</th><th>Terakhir keluar</th></tr></thead>
+    <tbody>
+      {% for r in habis %}
+      <tr>
+        <td>{{ r.kode }}</td><td>{{ r.barang }}</td>
+        <td class="num">{{ r.sisa }}</td><td>{{ r.terakhir_keluar or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">Tidak ada barang habis pada tanggal ini.</div>{% endif %}
+</div>
+
+<div class="card">
+  <h3>Daftar Barang Reject / Rusak / Ditolak</h3>
+  {% if reject %}
+  <table>
+    <thead><tr><th>Tanggal</th><th>Sumber</th><th>No. nota</th><th>Kode</th><th>Barang</th><th class="num">Qty</th><th>Alasan</th></tr></thead>
+    <tbody>
+      {% for r in reject %}
+      <tr>
+        <td>{{ r.tanggal }}</td><td>{{ r.sumber }}</td><td>{{ r.nomor }}</td>
+        <td>{{ r.kode }}</td><td>{{ r.barang }}</td>
+        <td class="num">{{ r.qty }}</td><td>{{ r.alasan or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">Tidak ada barang reject/rusak pada tanggal ini.</div>{% endif %}
+</div>
+
+<div class="card">
+  <h3>Daftar Barang Expired</h3>
+  {% if expired %}
+  <table>
+    <thead><tr><th>Kode</th><th>Barang</th><th>Expired</th><th class="num">Qty diterima</th></tr></thead>
+    <tbody>
+      {% for r in expired %}
+      <tr>
+        <td>{{ r.kode }}</td><td>{{ r.barang }}</td>
+        <td>{{ r.expired }}</td><td class="num">{{ r.qty_diterima }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">Tidak ada barang expired pada tanggal ini.</div>{% endif %}
+</div>
+
+{% endblock %}

@@ -16,6 +16,9 @@ Aplikasi web Flask + SQLite sudah berjalan dan diuji. Fitur yang sudah ada:
 - Edit barang: nama, kode, harga acuan, harga jual, expired, status aktif
 - Edit Tenan lewat **popup** pada daftar Tenan: kode, nama, kontak, model, komisi, periode, tempo; perubahan kode otomatis menyesuaikan kode barang Tenan tersebut
 - Dashboard tidak lagi menampilkan stok titipan; diganti grafik pendapatan 7 hari terakhir (komisi/margin vs penjualan) + stat pendapatan hari ini
+- Role `tenan` sebagai Pengisi Tenan: input titipan berstatus `PENDING`, terbatas pada Tenan sendiri
+- Kartu **Menunggu Validasi** di Dashboard admin untuk approve/reject; tidak ada halaman Waiting Room terpisah
+- Laporan Harian Tenan (`/portal/laporan-harian`): barang habis, reject/rusak/ditolak, expired; hanya data Tenan sendiri
 - Redirect aman: jika `dashboard.view` kasir dicabut, `/` langsung ke `/kasir`, tidak loop
 - PostgreSQL schema sudah disiapkan, tetapi belum dipakai (belum terpasang di mesin)
 
@@ -48,13 +51,13 @@ python -c "import os,tempfile,runpy,app; app.DB_PATH=os.path.join(tempfile.gette
 | `admin` | `admin123` | admin | Hak penuh; menu Hak Akses dikunci untuk admin |
 | `kasir` | `kasir123` | kasir | Saat ini `dashboard.view = 0`, `kasir.use = 1` |
 | `manajer` | `manajer123` | manajer | Lihat laporan & settlement |
-| `tenan1` | `tenan123` | tenan | Portal Sukabakmi |
-| `tenan2` | `tenan123` | tenan | Portal Sari Dagang |
+| `tenan1` | `tenan123` | tenan | Pengisi + pemilik data Sukabakmi |
+| `tenan2` | `tenan123` | tenan | Pengisi + pemilik data Sari Dagang |
 
 ## 4. File penting
 
 - `web/app.py` — seluruh logika bisnis, route, permission
-- `web/templates/` — tampilan (kasir, struk, barang, popup edit di `tenan.html`, hak_akses, dll.)
+- `web/templates/` — tampilan (kasir, struk, barang, popup edit di `tenan.html`, hak_akses, `laporan_harian.html`, dll.)
 - `web/static/kasir.js`, `web/static/style.css` — alur kasir & styling
 - `web/schema_sqlite.sql` — skema uji coba SQLite
 - `schema.sql` — skema produksi PostgreSQL
@@ -72,7 +75,8 @@ python -c "import os,tempfile,runpy,app; app.DB_PATH=os.path.join(tempfile.gette
 - Sukabakmi: Model B, komisi 20%, settlement mingguan
 - Satu lokasi dulu, kolom `lokasi_id` sudah disiapkan
 - QRIS manual, tanpa payment gateway
-- Role `tenan` hanya portal read-only berisi data Tenan-nya sendiri
+- Role `tenan` = Pengisi Tenan + Pemilik Tenan; input titipan dan laporan harian dibatasi pada Tenan sendiri
+- Admin menjadi validator; Waiting Room berupa kartu di Dashboard, bukan halaman/route terpisah
 - Barang lama (`SD-001`, `SD-002`, `MN-001`, `BJ-001`) tetap ada sebagai data uji tetapi `aktif = 0`
 - Tenan tidak bisa diubah di form edit barang agar riwayat penjualan tidak berpindah
 - Edit Tenan memakai popup, bukan halaman terpisah; field mengikuti kolom daftar Tenan. `kode_prefix` bisa diubah dan kode barang Tenan ikut disesuaikan (riwayat tetap memakai `barang_id`, bukan kode)

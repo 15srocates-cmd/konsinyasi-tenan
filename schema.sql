@@ -140,12 +140,18 @@ CREATE TABLE IF NOT EXISTS stok_titipan (
 -- ------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS penerimaan (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenan_id   UUID NOT NULL REFERENCES tenan(id),
-  nomor      VARCHAR(50) NOT NULL,
-  tanggal    DATE NOT NULL DEFAULT CURRENT_DATE,
-  catatan    TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenan_id     UUID NOT NULL REFERENCES tenan(id),
+  nomor        VARCHAR(50) NOT NULL,
+  tanggal      DATE NOT NULL DEFAULT CURRENT_DATE,
+  catatan      TEXT,
+  status       VARCHAR(20) NOT NULL DEFAULT 'DISETUJUI'
+                 CHECK (status IN ('PENDING','DISETUJUI','DITOLAK')),
+  created_by   UUID REFERENCES users(id),
+  validated_by UUID REFERENCES users(id),
+  validated_at TIMESTAMPTZ,
+  alasan_tolak TEXT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
 
   CONSTRAINT uq_penerimaan_per_tenan UNIQUE (tenan_id, nomor)
 );

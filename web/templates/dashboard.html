@@ -20,6 +20,57 @@
   </div>
 </div>
 
+{% if can('validasi.view') %}
+<div class="card">
+  <h2>Menunggu Validasi
+    {% if pending_validasi %}<span class="badge PENDING">{{ pending_validasi | length }}</span>{% endif %}
+  </h2>
+  <div class="muted" style="margin-bottom:8px">
+    Pengajuan dari Tenan belum masuk stok. Setujui atau tolak di sini.
+  </div>
+  {% if pending_validasi %}
+  <table>
+    <thead>
+      <tr>
+        <th>Tanggal</th><th>Tenan</th><th>Pengisi</th><th>No. nota</th>
+        <th>Item</th><th class="num">Qty</th><th>Catatan</th><th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in pending_validasi %}
+      <tr>
+        <td>{{ r.tanggal }}</td>
+        <td>{{ r.tenan }}</td>
+        <td>{{ r.pengisi or '-' }}</td>
+        <td>{{ r.nomor }}</td>
+        <td class="num">{{ r.jumlah_item }}</td>
+        <td class="num">{{ r.total_qty or 0 }}</td>
+        <td>{{ r.catatan or '-' }}</td>
+        <td>
+          <div class="actions">
+            <form method="post">
+              <input type="hidden" name="aksi" value="approve">
+              <input type="hidden" name="penerimaan_id" value="{{ r.id }}">
+              <button type="submit">Setujui</button>
+            </form>
+            <form method="post">
+              <input type="hidden" name="aksi" value="reject">
+              <input type="hidden" name="penerimaan_id" value="{{ r.id }}">
+              <input name="alasan_tolak" placeholder="Alasan" required>
+              <button type="submit" class="danger">Tolak</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">Tidak ada pengajuan yang menunggu validasi.</div>
+  {% endif %}
+</div>
+{% endif %}
+
 <div class="card">
   <h2>Pendapatan per hari</h2>
   <div class="muted" style="margin-bottom:8px">

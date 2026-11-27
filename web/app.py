@@ -42,6 +42,10 @@ PERMISSIONS = [
     ("barang.edit", "Barang titipan — tambah/ubah"),
     ("penerimaan.view", "Penerimaan — lihat"),
     ("penerimaan.edit", "Penerimaan — catat"),
+    ("penerimaan.submit", "Penerimaan — ajukan (Tenan)"),
+    ("validasi.view", "Validasi penerimaan — lihat di Dashboard"),
+    ("validasi.edit", "Validasi penerimaan — setujui / tolak"),
+    ("laporan_harian.view", "Laporan harian Tenan — lihat"),
     ("penjualan.view", "Penjualan — lihat"),
     ("penjualan.edit", "Penjualan — input manual"),
     ("kasir.use", "Kasir & struk — pakai"),
@@ -57,7 +61,10 @@ PERMISSIONS = [
 ]
 
 # Hak yang tidak boleh dicabut dari admin agar admin tidak mengunci diri sendiri.
-ADMIN_LOCKED = {"users.view", "users.edit", "permissions.view", "permissions.edit"}
+ADMIN_LOCKED = {
+    "users.view", "users.edit", "permissions.view", "permissions.edit",
+    "validasi.view", "validasi.edit",
+}
 
 # Dipakai halaman "akses ditolak" untuk mengarahkan user ke menu yang masih ia punya.
 MENU_FALLBACK = [
@@ -65,6 +72,7 @@ MENU_FALLBACK = [
     ("kasir.use", "kasir", "Kasir"),
     ("penjualan.view", "penjualan", "Penjualan"),
     ("barang.view", "barang", "Barang Titipan"),
+    ("penerimaan.view", "penerimaan", "Penerimaan"),
     ("retur.view", "retur", "Retur"),
     ("settlement.view", "settlement", "Settlement"),
     ("users.view", "users", "User"),
@@ -81,7 +89,9 @@ DEFAULT_ACCESS = {
         "dashboard.view", "barang.view", "penjualan.view",
         "retur.view", "settlement.view", "settlement.edit",
     },
-    "tenan": set(),
+    "tenan": {
+        "penerimaan.view", "penerimaan.submit", "laporan_harian.view",
+    },
 }
 
 
@@ -241,6 +251,12 @@ def akses_ditolak():
     user = current_user()
     if user["role"] == "tenan":
         menu = [("portal", "Portal Tenan")]
+        for key, endpoint, label in [
+            ("penerimaan.view", "penerimaan", "Input Titipan"),
+            ("laporan_harian.view", "laporan_harian", "Laporan Harian"),
+        ]:
+            if can(key, user["role"]):
+                menu.append((endpoint, label))
     else:
         menu = [
             (endpoint, label)
@@ -401,6 +417,95 @@ def portal():
     )
 
 
+@app.route("/portal/laporan-harian")
+@role_required("tenan")
+@permission_required("laporan_harian.view")
+def laporan_harian():
+    """Laporan harian khusus Tenan yang sedang login."""
+    db = get_db()
+    user = current_user()
+    tenan_id = user["tenan_id"]
+    if not tenan_id:
+        flash("User tenan belum terhubung ke data Tenan.", "err")
+        return redirect(url_for("logout"))
+    tanggal = request.args.get("tanggal") or today()
+
+    # Barang habis dihitung dari ledger sampai tanggal laporan.
+    habis = db.execute(
+        """SELECT b.kode, b.nama AS barang,
+                  COALESCE(SUM(m.qty), 0) AS sisa,
+                  MAX(CASE WHEN m.qty < 0 THEN m.tanggal END) AS terakhir_keluar
+           FROM barang_titipan b
+           JOIN mutasi_titipan m ON m.barang_id = b.id AND m.tanggal <= ?
+           WHERE b.tenan_id = ? AND b.aktif = 1
+           GROUP BY b.id
+           HAVING COALESCE(SUM(m.qty), 0) <= 0
+           ORDER BY b.kode""",
+        (tanggal, tenan_id),
+    ).fetchall()
+
+    reject = []
+    reject += [
+        dict(r) for r in db.execute(
+            """SELECT p.nomor, p.tanggal, b.kode, b.nama AS barang,
+                      pi.qty, p.alasan_tolak AS alasan,
+                      'Ditolak validasi' AS sumber
+               FROM penerimaan p
+               JOIN penerimaan_item pi ON pi.penerimaan_id = p.id
+               JOIN barang_titipan b ON b.id = pi.barang_id
+               WHERE p.tenan_id = ? AND p.status = 'DITOLAK'
+                 AND COALESCE(DATE(p.validated_at), p.tanggal) = ?""",
+            (tenan_id, tanggal),
+        ).fetchall()
+    ]
+    reject += [
+        dict(r) for r in db.execute(
+            """SELECT p.nomor, r.tanggal, b.kode, b.nama AS barang,
+                      ri.qty, r.alasan, 'Rusak (retur konsumen)' AS sumber
+               FROM retur_konsumen r
+               JOIN penjualan p ON p.id = r.penjualan_id
+               JOIN retur_konsumen_item ri ON ri.retur_konsumen_id = r.id
+               JOIN barang_titipan b ON b.id = ri.barang_id
+               WHERE b.tenan_id = ? AND r.kondisi = 'tidak_bisa_dijual'
+                 AND r.tanggal = ?""",
+            (tenan_id, tanggal),
+        ).fetchall()
+    ]
+    reject += [
+        dict(r) for r in db.execute(
+            """SELECT r.nomor, r.tanggal, b.kode, b.nama AS barang,
+                      ri.qty, r.alasan, 'Retur ke Tenan' AS sumber
+               FROM retur_tenan r
+               JOIN retur_tenan_item ri ON ri.retur_tenan_id = r.id
+               JOIN barang_titipan b ON b.id = ri.barang_id
+               WHERE r.tenan_id = ? AND r.tanggal = ?""",
+            (tenan_id, tanggal),
+        ).fetchall()
+    ]
+    reject.sort(key=lambda r: (r["tanggal"], r["kode"]))
+
+    expired = db.execute(
+        """SELECT b.kode, b.nama AS barang,
+                  MIN(COALESCE(pi.expired, b.expired)) AS expired,
+                  SUM(pi.qty) AS qty_diterima
+           FROM penerimaan p
+           JOIN penerimaan_item pi ON pi.penerimaan_id = p.id
+           JOIN barang_titipan b ON b.id = pi.barang_id
+           WHERE p.tenan_id = ? AND p.status = 'DISETUJUI'
+             AND b.aktif = 1
+             AND COALESCE(pi.expired, b.expired) IS NOT NULL
+             AND COALESCE(pi.expired, b.expired) <= ?
+           GROUP BY b.id
+           ORDER BY expired, b.kode""",
+        (tenan_id, tanggal),
+    ).fetchall()
+
+    return render_template(
+        "laporan_harian.html",
+        tanggal=tanggal, habis=habis, reject=reject, expired=expired,
+    )
+
+
 # ------------------------------------------------------------------
 # Database
 # ------------------------------------------------------------------
@@ -442,7 +547,45 @@ def init_db(reset: bool = False) -> None:
         "UPDATE penjualan SET total_akhir = total_penjualan WHERE total_akhir = 0"
     )
 
+    # Migrasi ringan: database lama belum punya status validasi penerimaan.
+    kolom_penerimaan = {r["name"] for r in db.execute("PRAGMA table_info(penerimaan)")}
+    for nama, ddl in [
+        ("status", "TEXT NOT NULL DEFAULT 'DISETUJUI'"),
+        ("created_by", "TEXT"),
+        ("validated_by", "TEXT"),
+        ("validated_at", "TEXT"),
+        ("alasan_tolak", "TEXT"),
+    ]:
+        if nama not in kolom_penerimaan:
+            db.execute(f"ALTER TABLE penerimaan ADD COLUMN {nama} {ddl}")
+    db.execute(
+        "UPDATE penerimaan SET status = 'DISETUJUI' "
+        "WHERE status IS NULL OR status = ''"
+    )
+
     seed_permissions(db)
+
+    # Database lama menyimpan tenan|penerimaan.view = 0. Aktifkan hak-hak baru
+    # untuk alur Pengisi Tenan sekali saja, agar perubahan admin berikutnya
+    # tidak ditimpa setiap kali aplikasi start.
+    kunci_migrasi = "akses_pengisi_tenan_v1"
+    if not db.execute(
+        "SELECT 1 FROM migrasi WHERE nama = ?", (kunci_migrasi,)
+    ).fetchone():
+        for role, permission in [
+            ("tenan", "penerimaan.view"),
+            ("tenan", "penerimaan.submit"),
+            ("tenan", "laporan_harian.view"),
+            ("admin", "validasi.view"),
+            ("admin", "validasi.edit"),
+        ]:
+            db.execute(
+                "UPDATE role_permissions SET allowed = 1 "
+                "WHERE role = ? AND permission = ?",
+                (role, permission),
+            )
+        db.execute("INSERT INTO migrasi (nama) VALUES (?)", (kunci_migrasi,))
+
     seed_data(db)
     db.commit()
     db.close()
@@ -485,11 +628,26 @@ def tambah_mutasi(db, barang, jenis: str, qty: int, ref_type: str, ref_id: str, 
     )
 
 
-def catat_penerimaan(db, tenan_id, nomor, tanggal, items, catatan=""):
+def catat_penerimaan(db, tenan_id, nomor, tanggal, items, catatan="",
+                     created_by=None, status="PENDING"):
+    """Catat pengajuan penerimaan.
+
+    Status PENDING tidak langsung mengubah stok. Stok hanya bertambah saat
+    admin menyetujui lewat validasi_penerimaan().
+    """
+    if status not in ("PENDING", "DISETUJUI", "DITOLAK"):
+        raise ValueError("Status penerimaan tidak dikenal")
     pid = uid()
     db.execute(
-        "INSERT INTO penerimaan (id, tenan_id, nomor, tanggal, catatan) VALUES (?, ?, ?, ?, ?)",
-        (pid, tenan_id, nomor, tanggal, catatan),
+        """INSERT INTO penerimaan
+           (id, tenan_id, nomor, tanggal, catatan, status,
+            created_by, validated_by, validated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            pid, tenan_id, nomor, tanggal, catatan, status, created_by,
+            created_by if status == "DISETUJUI" else None,
+            tanggal if status == "DISETUJUI" else None,
+        ),
     )
     for item in items:
         barang = db.execute("SELECT * FROM barang_titipan WHERE id = ?", (item["barang_id"],)).fetchone()
@@ -504,8 +662,55 @@ def catat_penerimaan(db, tenan_id, nomor, tanggal, items, catatan=""):
                VALUES (?, ?, ?, ?, ?, ?)""",
             (uid(), pid, barang["id"], qty, item.get("expired") or None, barang["harga_acuan_tenan"]),
         )
-        tambah_mutasi(db, barang, "TERIMA", qty, "penerimaan", pid, tanggal)
+        if status == "DISETUJUI":
+            tambah_mutasi(db, barang, "TERIMA", qty, "penerimaan", pid, tanggal)
     return pid
+
+
+def validasi_penerimaan(db, pid, aksi, validator_id, alasan=""):
+    """Setujui atau tolak pengajuan penerimaan dari dashboard admin."""
+    row = db.execute("SELECT * FROM penerimaan WHERE id = ?", (pid,)).fetchone()
+    if not row:
+        raise ValueError("Pengajuan tidak ditemukan")
+    if row["status"] != "PENDING":
+        raise ValueError(f"Pengajuan sudah berstatus {row['status']}")
+
+    if aksi == "approve":
+        items = db.execute(
+            """SELECT pi.*, b.nama AS barang
+               FROM penerimaan_item pi
+               JOIN barang_titipan b ON b.id = pi.barang_id
+               WHERE pi.penerimaan_id = ?""",
+            (pid,),
+        ).fetchall()
+        for item in items:
+            barang = db.execute(
+                "SELECT * FROM barang_titipan WHERE id = ?", (item["barang_id"],)
+            ).fetchone()
+            tambah_mutasi(
+                db, barang, "TERIMA", item["qty"], "penerimaan", pid, row["tanggal"]
+            )
+        db.execute(
+            """UPDATE penerimaan
+               SET status = 'DISETUJUI', validated_by = ?, validated_at = ?,
+                   alasan_tolak = NULL
+               WHERE id = ?""",
+            (validator_id, today(), pid),
+        )
+    elif aksi == "reject":
+        alasan = (alasan or "").strip()
+        if not alasan:
+            raise ValueError("Alasan penolakan wajib diisi")
+        db.execute(
+            """UPDATE penerimaan
+               SET status = 'DITOLAK', validated_by = ?, validated_at = ?,
+                   alasan_tolak = ?
+               WHERE id = ?""",
+            (validator_id, today(), alasan, pid),
+        )
+    else:
+        raise ValueError("Aksi validasi tidak dikenal")
+    return aksi
 
 
 def catat_penjualan(db, nomor, tanggal, kasir, items, metode="tunai",
@@ -821,6 +1026,7 @@ def seed_data(db):
             today(),
             [{"barang_id": by_barang[barang_kode]["id"], "qty": qty}],
             "Data contoh",
+            status="DISETUJUI",
         )
 
     catat_penjualan(
@@ -851,10 +1057,33 @@ def seed_data(db):
 # Route
 # ------------------------------------------------------------------
 
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 @permission_required("dashboard.view")
 def dashboard():
     db = get_db()
+    if request.method == "POST":
+        if not can("validasi.edit"):
+            flash("Anda tidak memiliki kewenangan untuk memvalidasi penerimaan.", "err")
+            return redirect(url_for("dashboard"))
+        try:
+            aksi = validasi_penerimaan(
+                db,
+                request.form.get("penerimaan_id"),
+                request.form.get("aksi"),
+                current_user()["id"],
+                request.form.get("alasan_tolak", ""),
+            )
+            db.commit()
+            flash(
+                "Penerimaan disetujui, stok sudah bertambah." if aksi == "approve"
+                else "Penerimaan ditolak.",
+                "ok",
+            )
+        except (ValueError, sqlite3.IntegrityError) as exc:
+            db.rollback()
+            flash(f"Gagal: {exc}", "err")
+        return redirect(url_for("dashboard"))
+
     hutang = db.execute(
         """WITH hutang_transaksi AS (
              SELECT b.tenan_id, SUM(pi.subtotal_hutang) AS hutang
@@ -927,6 +1156,20 @@ def dashboard():
         [r["penjualan"] for r in grafik] + [r["pendapatan"] for r in grafik] + [1]
     )
 
+    pending_validasi = []
+    if can("validasi.view"):
+        pending_validasi = db.execute(
+            """SELECT p.*, t.nama AS tenan, u.nama AS pengisi,
+                      COUNT(pi.id) AS jumlah_item, SUM(pi.qty) AS total_qty
+               FROM penerimaan p
+               JOIN tenan t ON t.id = p.tenan_id
+               LEFT JOIN users u ON u.id = p.created_by
+               LEFT JOIN penerimaan_item pi ON pi.penerimaan_id = p.id
+               WHERE p.status = 'PENDING'
+               GROUP BY p.id
+               ORDER BY p.tanggal, p.created_at"""
+        ).fetchall()
+
     return render_template(
         "dashboard.html",
         hutang=hutang,
@@ -934,6 +1177,7 @@ def dashboard():
         penjualan_terakhir=penjualan_terakhir,
         grafik=grafik,
         grafik_maks=grafik_maks,
+        pending_validasi=pending_validasi,
     )
 
 
@@ -1178,43 +1422,76 @@ def barang_edit(bid):
 @permission_required("penerimaan.view")
 def penerimaan():
     db = get_db()
+    user = current_user()
+    mode_tenan = user["role"] == "tenan"
+    tenan_id_user = user["tenan_id"]
+
     if request.method == "POST":
-        if not can("penerimaan.edit"):
-            flash("Anda tidak memiliki kewenangan untuk mencatat penerimaan.", "err")
+        if not (can("penerimaan.submit") or can("penerimaan.edit")):
+            flash("Anda tidak memiliki kewenangan untuk mengajukan penerimaan.", "err")
             return redirect(url_for("penerimaan"))
         try:
+            tenan_id = tenan_id_user if mode_tenan else request.form.get("tenan_id")
+            if not tenan_id:
+                raise ValueError("Tenan harus dipilih")
             catat_penerimaan(
                 db,
-                request.form["tenan_id"],
+                tenan_id,
                 request.form["nomor"].strip(),
                 request.form.get("tanggal") or today(),
                 [{"barang_id": request.form["barang_id"],
                   "qty": request.form["qty"],
                   "expired": request.form.get("expired")}],
                 request.form.get("catatan", ""),
+                created_by=user["id"],
+                status="PENDING",
             )
             db.commit()
-            flash("Penerimaan titipan dicatat", "ok")
+            flash("Pengajuan dikirim. Stok menunggu validasi admin.", "ok")
         except (ValueError, sqlite3.IntegrityError) as exc:
             db.rollback()
             flash(f"Gagal: {exc}", "err")
         return redirect(url_for("penerimaan"))
 
+    params = []
+    where = ""
+    if mode_tenan:
+        where = "WHERE p.tenan_id = ?"
+        params.append(tenan_id_user)
     rows = db.execute(
-        """SELECT p.*, t.nama AS tenan,
-                  COUNT(pi.id) AS jumlah_item, SUM(pi.qty) AS total_qty
-           FROM penerimaan p
-           JOIN tenan t ON t.id = p.tenan_id
-           LEFT JOIN penerimaan_item pi ON pi.penerimaan_id = p.id
-           GROUP BY p.id ORDER BY p.tanggal DESC"""
+        f"""SELECT p.*, t.nama AS tenan, u.nama AS pengisi,
+                   COUNT(pi.id) AS jumlah_item, SUM(pi.qty) AS total_qty
+            FROM penerimaan p
+            JOIN tenan t ON t.id = p.tenan_id
+            LEFT JOIN users u ON u.id = p.created_by
+            LEFT JOIN penerimaan_item pi ON pi.penerimaan_id = p.id
+            {where}
+            GROUP BY p.id ORDER BY p.tanggal DESC, p.created_at DESC""",
+        params,
     ).fetchall()
-    tenans = db.execute("SELECT * FROM tenan WHERE aktif = 1 ORDER BY nama").fetchall()
-    barangs = db.execute(
-        """SELECT b.*, t.nama AS tenan FROM barang_titipan b
-           JOIN tenan t ON t.id = b.tenan_id
-           WHERE b.aktif = 1 ORDER BY t.nama, b.kode"""
-    ).fetchall()
-    return render_template("penerimaan.html", rows=rows, tenans=tenans, barangs=barangs, today=today())
+
+    if mode_tenan:
+        tenans = db.execute(
+            "SELECT * FROM tenan WHERE id = ?", (tenan_id_user,)
+        ).fetchall()
+        barangs = db.execute(
+            """SELECT b.*, t.nama AS tenan FROM barang_titipan b
+               JOIN tenan t ON t.id = b.tenan_id
+               WHERE b.aktif = 1 AND b.tenan_id = ?
+               ORDER BY b.kode""",
+            (tenan_id_user,),
+        ).fetchall()
+    else:
+        tenans = db.execute("SELECT * FROM tenan WHERE aktif = 1 ORDER BY nama").fetchall()
+        barangs = db.execute(
+            """SELECT b.*, t.nama AS tenan FROM barang_titipan b
+               JOIN tenan t ON t.id = b.tenan_id
+               WHERE b.aktif = 1 ORDER BY t.nama, b.kode"""
+        ).fetchall()
+    return render_template(
+        "penerimaan.html", rows=rows, tenans=tenans, barangs=barangs,
+        today=today(), mode_tenan=mode_tenan,
+    )
 
 
 @app.route("/penjualan", methods=["GET", "POST"])

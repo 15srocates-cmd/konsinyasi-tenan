@@ -1,6 +1,9 @@
 from datetime import date, timedelta
 
-from app import DEFAULT_ACCESS, PERMISSIONS, ROLES, app, get_db
+from app import (
+    DEFAULT_ACCESS, PERMISSIONS, ROLES, app,
+    catat_penerimaan, catat_penjualan, get_db, today,
+)
 
 client = app.test_client()
 
@@ -329,6 +332,138 @@ assert b"Mitra Niaga" not in res.data, "Portal Tenan menampilkan data Tenan lain
 res = tenan.get("/")
 print("tenan GET / ->", res.status_code)
 assert res.status_code == 302
+
+# --- Pengajuan Tenan -> validasi admin -> laporan harian ---
+with app.app_context():
+    db = get_db()
+    tid_sbk = db.execute(
+        "SELECT id FROM tenan WHERE kode_prefix = 'SBK'"
+    ).fetchone()["id"]
+    bid_sbk = barang["SBK-001"]["id"]
+    ambil_stok = """SELECT COALESCE(qty, 0) FROM stok_titipan
+                    WHERE tenan_id = ? AND barang_id = ?"""
+    stok_awal = db.execute(ambil_stok, (tid_sbk, bid_sbk)).fetchone()[0]
+    tanggal_kedaluwarsa = (date.today() - timedelta(days=1)).isoformat()
+
+res = tenan.get("/penerimaan")
+print("tenan GET /penerimaan ->", res.status_code)
+assert res.status_code == 200
+assert b"Ajukan Penerimaan Titipan" in res.data
+assert b"Mitra Niaga" not in res.data, "Form Tenan menampilkan Tenan lain"
+
+res = tenan.post(
+    "/penerimaan",
+    data={
+        "nomor": "TER-SMOKE-PENDING-001",
+        "tanggal": today(),
+        "barang_id": bid_sbk,
+        "qty": "4",
+        "expired": tanggal_kedaluwarsa,
+        "catatan": "Uji pending",
+    },
+    follow_redirects=True,
+)
+print("tenan POST pengajuan ->", res.status_code)
+assert res.status_code == 200
+
+with app.app_context():
+    db = get_db()
+    pengajuan = db.execute(
+        "SELECT * FROM penerimaan WHERE nomor = ?", ("TER-SMOKE-PENDING-001",)
+    ).fetchone()
+    print("Pengajuan:", dict(pengajuan))
+    assert pengajuan["status"] == "PENDING"
+    assert pengajuan["created_by"] is not None
+    stok_pending = db.execute(ambil_stok, (tid_sbk, bid_sbk)).fetchone()[0]
+    assert stok_pending == stok_awal, "Stok tidak boleh berubah sebelum disetujui"
+
+res = client.get("/")
+print("Dashboard memuat waiting room ->", res.status_code)
+assert b"Menunggu Validasi" in res.data
+assert b"TER-SMOKE-PENDING-001" in res.data
+
+res = client.post(
+    "/",
+    data={"aksi": "approve", "penerimaan_id": pengajuan["id"]},
+    follow_redirects=True,
+)
+print("admin approve ->", res.status_code)
+assert res.status_code == 200
+
+with app.app_context():
+    db = get_db()
+    disetujui = db.execute(
+        "SELECT * FROM penerimaan WHERE id = ?", (pengajuan["id"],)
+    ).fetchone()
+    assert disetujui["status"] == "DISETUJUI"
+    assert disetujui["validated_by"] is not None
+    stok_setelah = db.execute(ambil_stok, (tid_sbk, bid_sbk)).fetchone()[0]
+    assert stok_setelah == stok_awal + 4, (stok_awal, stok_setelah)
+
+res = tenan.post(
+    "/penerimaan",
+    data={
+        "nomor": "TER-SMOKE-PENDING-002",
+        "tanggal": today(),
+        "barang_id": bid_sbk,
+        "qty": "5",
+        "expired": "",
+        "catatan": "Uji tolak",
+    },
+    follow_redirects=True,
+)
+assert res.status_code == 200
+with app.app_context():
+    db = get_db()
+    ditolak = db.execute(
+        "SELECT * FROM penerimaan WHERE nomor = ?", ("TER-SMOKE-PENDING-002",)
+    ).fetchone()
+
+res = client.post(
+    "/",
+    data={
+        "aksi": "reject",
+        "penerimaan_id": ditolak["id"],
+        "alasan_tolak": "Rusak saat pengiriman",
+    },
+    follow_redirects=True,
+)
+print("admin reject ->", res.status_code)
+assert res.status_code == 200
+with app.app_context():
+    db = get_db()
+    ditolak = db.execute(
+        "SELECT * FROM penerimaan WHERE id = ?", (ditolak["id"],)
+    ).fetchone()
+    assert ditolak["status"] == "DITOLAK"
+    assert ditolak["alasan_tolak"] == "Rusak saat pengiriman"
+    stok_setelah_tolak = db.execute(ambil_stok, (tid_sbk, bid_sbk)).fetchone()[0]
+    assert stok_setelah_tolak == stok_awal + 4
+
+# Barang habis: beri stok 1 lalu jual 1.
+with app.app_context():
+    db = get_db()
+    catat_penerimaan(
+        db, tid_sbk, "TER-SMOKE-HABIS-001", today(),
+        [{"barang_id": barang["SBK-018"]["id"], "qty": 1}],
+        "Uji barang habis", status="DISETUJUI",
+    )
+    catat_penjualan(
+        db, "JUAL-SMOKE-HABIS-001", today(), "Tester",
+        [{"barang_id": barang["SBK-018"]["id"], "qty": 31, "harga_jual": 10000}],
+    )
+    db.commit()
+
+res = tenan.get(f"/portal/laporan-harian?tanggal={today()}")
+print("GET laporan harian Tenan ->", res.status_code)
+assert res.status_code == 200
+assert b"Daftar Barang Habis" in res.data
+assert b"SBK-018" in res.data
+assert b"Daftar Barang Reject" in res.data
+assert b"Ditolak validasi" in res.data
+assert b"Rusak saat pengiriman" in res.data
+assert b"Daftar Barang Expired" in res.data
+assert tanggal_kedaluwarsa.encode() in res.data
 
 # --- Admin mengubah hak akses role kasir ---
 def semua_hak():

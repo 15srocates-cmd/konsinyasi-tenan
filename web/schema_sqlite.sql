@@ -40,6 +40,12 @@ CREATE TABLE IF NOT EXISTS role_permissions (
   PRIMARY KEY (role, permission)
 );
 
+-- Penanda migrasi agar perbaikan hak akses tidak diulang setiap start.
+CREATE TABLE IF NOT EXISTS migrasi (
+  nama          TEXT PRIMARY KEY,
+  dijalankan_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS kesepakatan_tenan (
   id                 TEXT PRIMARY KEY,
   tenan_id           TEXT NOT NULL REFERENCES tenan(id),
@@ -83,12 +89,18 @@ CREATE TABLE IF NOT EXISTS stok_titipan (
 );
 
 CREATE TABLE IF NOT EXISTS penerimaan (
-  id         TEXT PRIMARY KEY,
-  tenan_id   TEXT NOT NULL REFERENCES tenan(id),
-  nomor      TEXT NOT NULL,
-  tanggal    TEXT NOT NULL DEFAULT CURRENT_DATE,
-  catatan    TEXT,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  id           TEXT PRIMARY KEY,
+  tenan_id     TEXT NOT NULL REFERENCES tenan(id),
+  nomor        TEXT NOT NULL,
+  tanggal      TEXT NOT NULL DEFAULT CURRENT_DATE,
+  catatan      TEXT,
+  status       TEXT NOT NULL DEFAULT 'DISETUJUI'
+                 CHECK (status IN ('PENDING','DISETUJUI','DITOLAK')),
+  created_by   TEXT REFERENCES users(id),
+  validated_by TEXT REFERENCES users(id),
+  validated_at TEXT,
+  alasan_tolak TEXT,
+  created_at   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (tenan_id, nomor)
 );
 

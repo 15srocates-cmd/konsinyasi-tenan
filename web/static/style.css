@@ -87,7 +87,9 @@ button.danger { background: #b91c1c; }
   color: #374151;
 }
 .badge.DRAFT { background: #fef3c7; color: #92400e; }
+.badge.PENDING { background: #fef3c7; color: #92400e; }
 .badge.DISETUJUI { background: #dbeafe; color: #1e40af; }
+.badge.DITOLAK { background: #fee2e2; color: #991b1b; }
 .badge.DIBAYAR { background: #d1fae5; color: #065f46; }
 .muted { color: #6b7280; font-size: 12px; }
 .empty { color: #9ca3af; font-size: 13px; padding: 10px 0; }

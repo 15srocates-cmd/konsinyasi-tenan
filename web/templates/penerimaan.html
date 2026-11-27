@@ -3,16 +3,21 @@
 {% block content %}
 
 <div class="card">
-  <h2>Catat Penerimaan Titipan</h2>
+  <h2>{{ 'Ajukan Penerimaan Titipan' if mode_tenan else 'Catat Penerimaan Titipan' }}</h2>
   <form method="post">
     <div class="row">
       <div>
         <label>Tenan</label>
+        {% if mode_tenan %}
+        <input name="tenan_id" type="hidden" value="{{ tenans[0].id if tenans else '' }}">
+        <input value="{{ tenans[0].nama if tenans else '-' }}" disabled>
+        {% else %}
         <select name="tenan_id" required>
           {% for t in tenans %}<option value="{{ t.id }}">{{ t.nama }} ({{ t.kode_prefix }})</option>{% endfor %}
         </select>
+        {% endif %}
       </div>
-      <div><label>Nomor nota</label><input name="nomor" required placeholder="TER-SD-002"></div>
+      <div><label>Nomor nota</label><input name="nomor" required placeholder="TER-SBK-019"></div>
       <div><label>Tanggal</label><input name="tanggal" type="date" value="{{ today if today is defined else '' }}"></div>
     </div>
     <div class="row">
@@ -20,7 +25,7 @@
         <label>Barang</label>
         <select name="barang_id" required>
           {% for b in barangs %}
-          <option value="{{ b.id }}">{{ b.kode }} — {{ b.nama }} ({{ b.tenan }})</option>
+          <option value="{{ b.id }}">{{ b.kode }} — {{ b.nama }}{% if not mode_tenan %} ({{ b.tenan }}){% endif %}</option>
           {% endfor %}
         </select>
       </div>
@@ -28,24 +33,34 @@
       <div><label>Expired (opsional)</label><input name="expired" type="date"></div>
     </div>
     <div><label>Catatan</label><input name="catatan"></div>
-    <button type="submit">Simpan Penerimaan</button>
+    <button type="submit">{{ 'Kirim Pengajuan' if mode_tenan else 'Simpan Pengajuan' }}</button>
   </form>
   <div class="muted" style="margin-top:8px">
-    Versi uji coba: satu nota = satu jenis barang. Mutasi <code>TERIMA</code> otomatis menambah stok.
+    Versi uji coba: satu nota = satu jenis barang. Pengajuan berstatus
+    <span class="badge PENDING">PENDING</span> dan belum menambah stok sampai admin menyetujui di Dashboard.
   </div>
 </div>
 
 <div class="card">
-  <h2>Riwayat Penerimaan</h2>
+  <h2>Riwayat Penerimaan{% if mode_tenan %} Saya{% endif %}</h2>
   {% if rows %}
   <table>
-    <thead><tr><th>Nomor</th><th>Tanggal</th><th>Tenan</th><th class="num">Item</th><th class="num">Total qty</th><th>Catatan</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Nomor</th><th>Tanggal</th><th>Tenan</th>
+        {% if not mode_tenan %}<th>Pengisi</th>{% endif %}
+        <th class="num">Item</th><th class="num">Total qty</th>
+        <th>Status</th><th>Catatan / Alasan</th>
+      </tr>
+    </thead>
     <tbody>
       {% for r in rows %}
       <tr>
         <td>{{ r.nomor }}</td><td>{{ r.tanggal }}</td><td>{{ r.tenan }}</td>
+        {% if not mode_tenan %}<td>{{ r.pengisi or '-' }}</td>{% endif %}
         <td class="num">{{ r.jumlah_item }}</td><td class="num">{{ r.total_qty or 0 }}</td>
-        <td>{{ r.catatan or '-' }}</td>
+        <td><span class="badge {{ r.status }}">{{ r.status }}</span></td>
+        <td>{{ r.alasan_tolak or r.catatan or '-' }}</td>
       </tr>
       {% endfor %}
     </tbody>

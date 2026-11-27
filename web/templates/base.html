@@ -22,6 +22,8 @@
     {% if user %}
       {% if user.role == 'tenan' %}
       <a href="{{ url_for('portal') }}">Portal Tenan</a>
+      {% if can('penerimaan.view') %}<a href="{{ url_for('penerimaan') }}">Input Titipan</a>{% endif %}
+      {% if can('laporan_harian.view') %}<a href="{{ url_for('laporan_harian') }}">Laporan Harian</a>{% endif %}
       {% else %}
       {% if can('dashboard.view') %}<a href="{{ url_for('dashboard') }}">Dashboard</a>{% endif %}
       {% if can('tenan.view') %}<a href="{{ url_for('tenan') }}">Tenan & Kesepakatan</a>{% endif %}

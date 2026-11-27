@@ -65,11 +65,12 @@ New-NetFirewallRule -DisplayName "Konsinyasi Flask 5000" -Direction Inbound -Pro
 
 1. **Tenan & Kesepakatan** — tambah Tenan, atur model B/A, komisi persen/tetap, periode mingguan/bulanan; klik **Edit** pada baris Tenan untuk membuka popup berisi kode, nama, kontak, model, komisi, periode, dan tempo (kode barang ikut disesuaikan bila kode diubah)
 2. **Barang Titipan** — tambah barang dengan kode unik per Tenan; klik **Edit** pada baris barang untuk mengubah nama, kode, harga acuan, harga jual, expired, atau status aktif/nonaktif
-3. **Penerimaan** — catat titipan masuk; stok otomatis bertambah lewat mutasi `TERIMA`
+3. **Penerimaan** — role `tenan` mengajukan titipan masuk berstatus `PENDING`; stok baru bertambah setelah admin menyetujui di Dashboard (mutasi `TERIMA`)
 4. **Penjualan** — input hingga 3 barang; komisi/margin dan hutang dihitung otomatis
 5. **Retur** — retur konsumen (masuk stok atau retur Tenan) dan retur barang tak laku
 6. **Settlement** — rekap per periode, ringkasan + drill-down per barang, status `DRAFT → DISETUJUI → DIBAYAR`
-7. **Dashboard** — grafik pendapatan 7 hari terakhir (pendapatan toko vs penjualan), hutang per Tenan, settlement jatuh tempo; stok titipan tidak ditampilkan di dashboard
+7. **Dashboard** — kartu **Menunggu Validasi** untuk admin (approve/reject pengajuan Tenan), grafik pendapatan 7 hari terakhir (pendapatan toko vs penjualan), hutang per Tenan, settlement jatuh tempo; stok titipan tidak ditampilkan di dashboard
+8. **Laporan Harian Tenan** — `/portal/laporan-harian`: daftar barang habis, reject/rusak/ditolak, dan expired menurut tanggal; hanya data Tenan yang sedang login
 
 ## Login & Kewenangan
 
@@ -80,8 +81,8 @@ Semua halaman memerlukan login. Akun contoh (dibuat otomatis saat reset):
 | `admin` | `admin123` | admin | Semua menu, termasuk Tenan/Kesepakatan, Penerimaan, Settlement, User |
 | `kasir` | `kasir123` | kasir | Dashboard, Barang (lihat), Penjualan, Kasir, Retur konsumen |
 | `manajer` | `manajer123` | manajer | Dashboard, Barang/Penjualan/Retur (lihat), Settlement |
-| `tenan1` | `tenan123` | tenan | Portal khusus Tenan **Sukabakmi** (read-only, hanya data sendiri) |
-| `tenan2` | `tenan123` | tenan | Portal Tenan Sari Dagang |
+| `tenan1` | `tenan123` | tenan | Pengisi + pemilik data **Sukabakmi**: Input Titipan, Portal, Laporan Harian |
+| `tenan2` | `tenan123` | tenan | Pengisi + pemilik data Sari Dagang |
 
 Tambah user: menu **User** (hanya admin). User tenan wajib dihubungkan ke salah satu Tenan. Password bisa diubah sendiri lewat menu **Profil**.
 
@@ -90,11 +91,31 @@ Tambah user: menu **User** (hanya admin). User tenan wajib dihubungkan ke salah 
 Menu **Hak Akses** (khusus admin) berisi matriks fitur × role. Admin bisa mencentang/menghapus centang setiap fitur untuk role admin, kasir, manajer, dan tenan. Perubahan langsung dipakai oleh navigasi dan pengecekan route.
 
 - Hak `User` dan `Hak Akses` untuk **admin selalu aktif** agar admin tidak mengunci diri sendiri
-- Role `tenan` tetap diarahkan ke `/portal` (datanya dibatasi otomatis berdasarkan `tenan_id`)
+- Role `tenan` tetap diarahkan ke `/portal` saat login, tetapi bisa membuka **Input Titipan** dan **Laporan Harian**; datanya dibatasi otomatis berdasarkan `tenan_id`
+- Hak `validasi.view` dan `validasi.edit` untuk admin selalu aktif; Waiting Room tidak dibuat halaman terpisah, melainkan kartu **Menunggu Validasi** di Dashboard admin
 - Contoh: cabut centang `kasir.use` pada role kasir → kasir langsung tidak bisa membuka menu Kasir
 - Jika `dashboard.view` dicabut, membuka `/` tidak menyebabkan redirect berulang; aplikasi otomatis mengarahkan ke menu pertama yang masih aktif (misalnya `/kasir`). Jika tidak ada menu aktif, muncul halaman **Akses Ditolak** berisi tautan logout/profil.
 
 > `app.secret_key` bisa di-set lewat environment variable `KONSINYASI_SECRET_KEY`. Nilai bawaan hanya untuk uji coba; wajib diganti sebelum dipakai produksi.
+
+## Alur Pengisi Tenan & Validasi Admin
+
+1. Login sebagai `tenan1`, buka **Input Titipan**.
+2. Tenan tidak bisa memilih Tenan lain; form hanya menampilkan barang milik Tenan yang bersangkutan. Isi nomor nota, barang, qty, expired (opsional), dan catatan.
+3. Pengajuan tersimpan berstatus `PENDING`. **Stok belum berubah.**
+4. Login sebagai `admin`, buka **Dashboard**. Kartu **Menunggu Validasi** berisi semua pengajuan.
+5. Klik **Setujui** → status `DISETUJUI`, stok bertambah lewat mutasi `TERIMA`; atau isi alasan lalu **Tolak** → status `DITOLAK`, stok tidak berubah.
+6. Riwayat di halaman Penerimaan menampilkan status dan alasan penolakan.
+
+Data lama yang sudah ada otomatis dianggap `DISETUJUI` saat migrasi, supaya stok lama tidak berubah.
+
+## Laporan Harian Tenan
+
+Buka **Laporan Harian** dari Portal Tenan atau nav atas. Pilih tanggal, lalu lihat:
+
+- **Barang habis**: dihitung dari `mutasi_titipan` sampai tanggal tersebut
+- **Barang reject/rusak/ditolak**: pengajuan `DITOLAK` + retur konsumen `tidak_bisa_dijual` + retur ke Tenan
+- **Barang expired**: `expired` pada batch penerimaan atau master barang yang ≤ tanggal laporan
 
 ## Fitur Kasir (alur bergaya Youtap POS)
 
