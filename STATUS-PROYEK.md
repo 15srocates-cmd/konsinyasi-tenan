@@ -15,6 +15,7 @@ Aplikasi web Flask + SQLite sudah berjalan dan diuji. Fitur yang sudah ada:
 - Tenan baru **Sukabakmi** (`SBK`) dengan 18 produk dari gambar yang diberikan
 - Edit barang: nama, kode, harga acuan, harga jual, expired, status aktif
 - Edit Tenan lewat **popup** pada daftar Tenan: kode, nama, kontak, model, komisi, periode, tempo; perubahan kode otomatis menyesuaikan kode barang Tenan tersebut
+- Dashboard tidak lagi menampilkan stok titipan; diganti grafik pendapatan 7 hari terakhir (komisi/margin vs penjualan) + stat pendapatan hari ini
 - Redirect aman: jika `dashboard.view` kasir dicabut, `/` langsung ke `/kasir`, tidak loop
 - PostgreSQL schema sudah disiapkan, tetapi belum dipakai (belum terpasang di mesin)
 

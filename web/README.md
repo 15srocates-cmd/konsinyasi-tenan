@@ -69,7 +69,7 @@ New-NetFirewallRule -DisplayName "Konsinyasi Flask 5000" -Direction Inbound -Pro
 4. **Penjualan** — input hingga 3 barang; komisi/margin dan hutang dihitung otomatis
 5. **Retur** — retur konsumen (masuk stok atau retur Tenan) dan retur barang tak laku
 6. **Settlement** — rekap per periode, ringkasan + drill-down per barang, status `DRAFT → DISETUJUI → DIBAYAR`
-7. **Dashboard** — stok titipan, hutang per Tenan, settlement jatuh tempo
+7. **Dashboard** — grafik pendapatan 7 hari terakhir (pendapatan toko vs penjualan), hutang per Tenan, settlement jatuh tempo; stok titipan tidak ditampilkan di dashboard
 
 ## Login & Kewenangan
 

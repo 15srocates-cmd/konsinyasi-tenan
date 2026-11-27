@@ -18,6 +18,12 @@ for page in pages:
     print(f"GET {page:14} -> {res.status_code}")
     assert res.status_code == 200, page
 
+res = client.get("/")
+print("Dashboard: stok titipan hilang, grafik pendapatan tampil")
+assert b"Stok titipan" not in res.data
+assert b"Pendapatan per hari" in res.data
+assert b"grafik-batang pendapatan" in res.data
+
 with app.app_context():
     db = get_db()
     tenan = {r["kode_prefix"]: r for r in db.execute("SELECT * FROM tenan")}

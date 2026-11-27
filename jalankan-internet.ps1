@@ -4,14 +4,20 @@
 
 $web = Join-Path $PSScriptRoot "web"
 
-$sudahJalan = Get-NetTCPConnection -LocalPort 5000 -State Listen -ErrorAction SilentlyContinue
-if ($sudahJalan) {
-  Write-Host "Flask sudah berjalan di http://127.0.0.1:5000"
-} else {
-  Write-Host "Menjalankan Flask di http://127.0.0.1:5000 ..."
-  Start-Process -FilePath "python" -ArgumentList "app.py" -WorkingDirectory $web
-  Start-Sleep -Seconds 2
+# Hentikan Flask/tunnel lama supaya tidak ada beberapa proses di port 5000.
+$flaskLama = Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" |
+  Where-Object { $_.CommandLine -match '\bapp\.py$' -and $_.CommandLine -notmatch 'streamlit' }
+foreach ($p in $flaskLama) {
+  Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
 }
+Get-CimInstance Win32_Process -Filter "Name = 'cloudflared.exe'" | ForEach-Object {
+  Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+}
+if ($flaskLama) { Start-Sleep -Seconds 2 }
+
+Write-Host "Menjalankan Flask di http://127.0.0.1:5000 ..."
+Start-Process -FilePath "python" -ArgumentList "app.py" -WorkingDirectory $web
+Start-Sleep -Seconds 2
 
 $cf = Get-Command cloudflared -ErrorAction SilentlyContinue
 if (-not $cf) {

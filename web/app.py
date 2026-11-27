@@ -855,14 +855,6 @@ def seed_data(db):
 @permission_required("dashboard.view")
 def dashboard():
     db = get_db()
-    stok = db.execute(
-        """SELECT t.nama AS tenan, b.kode, b.nama AS barang, s.qty
-           FROM stok_titipan s
-           JOIN barang_titipan b ON b.id = s.barang_id
-           JOIN tenan t ON t.id = s.tenan_id
-           WHERE s.qty > 0
-           ORDER BY t.nama, b.kode"""
-    ).fetchall()
     hutang = db.execute(
         """WITH hutang_transaksi AS (
              SELECT b.tenan_id, SUM(pi.subtotal_hutang) AS hutang
@@ -906,12 +898,42 @@ def dashboard():
     penjualan_terakhir = db.execute(
         "SELECT * FROM penjualan ORDER BY created_at DESC LIMIT 5"
     ).fetchall()
+
+    # Grafik pendapatan 7 hari terakhir (termasuk hari tanpa transaksi).
+    awal_grafik = (date.today() - timedelta(days=6)).isoformat()
+    per_hari = db.execute(
+        """SELECT tanggal,
+                  COALESCE(SUM(total_akhir), 0) AS penjualan,
+                  COALESCE(SUM(total_komisi), 0) AS pendapatan
+           FROM penjualan
+           WHERE tanggal >= ?
+           GROUP BY tanggal
+           ORDER BY tanggal""",
+        (awal_grafik,),
+    ).fetchall()
+    peta = {r["tanggal"]: r for r in per_hari}
+    grafik = []
+    for i in range(6, -1, -1):
+        tanggal = (date.today() - timedelta(days=i)).isoformat()
+        r = peta.get(tanggal)
+        grafik.append(
+            {
+                "tanggal": tanggal,
+                "penjualan": r["penjualan"] if r else 0,
+                "pendapatan": r["pendapatan"] if r else 0,
+            }
+        )
+    grafik_maks = max(
+        [r["penjualan"] for r in grafik] + [r["pendapatan"] for r in grafik] + [1]
+    )
+
     return render_template(
         "dashboard.html",
-        stok=stok,
         hutang=hutang,
         settlement_dekat=settlement_dekat,
         penjualan_terakhir=penjualan_terakhir,
+        grafik=grafik,
+        grafik_maks=grafik_maks,
     )
 
 

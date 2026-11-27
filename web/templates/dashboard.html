@@ -14,24 +14,37 @@
     <div class="muted">Jatuh tempo dalam 7 hari</div>
   </div>
   <div class="card stat">
-    <div class="label">Jenis barang titipan</div>
-    <div class="value">{{ stok | length }}</div>
-    <div class="muted">Masih tersedia di stok</div>
+    <div class="label">Pendapatan hari ini</div>
+    <div class="value">Rp {{ grafik[-1].pendapatan | rupiah }}</div>
+    <div class="muted">Komisi/margin dari penjualan</div>
   </div>
 </div>
 
 <div class="card">
-  <h2>Stok titipan</h2>
-  {% if stok %}
-  <table>
-    <thead><tr><th>Tenan</th><th>Kode</th><th>Barang</th><th class="num">Qty</th></tr></thead>
-    <tbody>
-      {% for r in stok %}
-      <tr><td>{{ r.tenan }}</td><td>{{ r.kode }}</td><td>{{ r.barang }}</td><td class="num">{{ r.qty }}</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}<div class="empty">Belum ada stok titipan.</div>{% endif %}
+  <h2>Pendapatan per hari</h2>
+  <div class="muted" style="margin-bottom:8px">
+    7 hari terakhir.
+    <span class="legend">
+      <span class="legend-item"><i class="legend-warna pendapatan"></i>Pendapatan toko (komisi/margin)</span>
+      <span class="legend-item"><i class="legend-warna penjualan"></i>Penjualan</span>
+    </span>
+  </div>
+  <div class="grafik">
+    {% for r in grafik %}
+    <div class="grafik-hari">
+      <div class="grafik-pasangan">
+        <div class="grafik-batang penjualan"
+             style="height: {{ (r.penjualan / grafik_maks * 100) | round | int }}%"
+             title="Penjualan Rp {{ r.penjualan | rupiah }}"></div>
+        <div class="grafik-batang pendapatan"
+             style="height: {{ (r.pendapatan / grafik_maks * 100) | round | int }}%"
+             title="Pendapatan Rp {{ r.pendapatan | rupiah }}"></div>
+      </div>
+      <div class="grafik-label">{{ r.tanggal[5:] }}</div>
+      <div class="grafik-nilai">{{ r.pendapatan | rupiah }}</div>
+    </div>
+    {% endfor %}
+  </div>
 </div>
 
 <div class="grid grid-2">

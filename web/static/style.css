@@ -175,6 +175,34 @@ button.danger { background: #b91c1c; }
 .qris-title { font-weight: 700; letter-spacing: 1px; color: #0f766e; }
 .qris-name { margin: 4px 0 8px; font-size: 14px; font-weight: 600; }
 tr.habis, .produk.habis { opacity: .5; }
+.legend { display: inline-flex; gap: 12px; flex-wrap: wrap; }
+.legend-item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.legend-warna { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+.legend-warna.pendapatan { background: #0f766e; }
+.legend-warna.penjualan { background: #93c5fd; }
+.grafik {
+  display: flex; align-items: flex-end; gap: 10px;
+  height: 210px; padding-top: 8px; border-bottom: 1px solid #e5e7eb;
+}
+.grafik-hari {
+  flex: 1; height: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-end;
+}
+.grafik-pasangan {
+  width: 100%; height: 160px; display: flex; align-items: flex-end;
+  justify-content: center; gap: 3px;
+}
+.grafik-batang { width: 22px; min-height: 2px; border-radius: 4px 4px 0 0; }
+.grafik-batang.pendapatan { background: #0f766e; }
+.grafik-batang.penjualan { background: #93c5fd; }
+.grafik-label { font-size: 11px; color: #6b7280; margin-top: 6px; }
+.grafik-nilai { font-size: 11px; font-weight: 600; margin-top: 2px; }
+@media (max-width: 720px) {
+  .grafik { gap: 4px; }
+  .grafik-batang { width: 12px; }
+  .grafik-nilai { font-size: 9px; }
+}
+
 .modal {
   position: fixed; inset: 0; background: rgba(15,23,42,.55);
   display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px;
