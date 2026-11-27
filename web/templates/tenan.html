@@ -7,12 +7,12 @@
     <h2>Tambah Tenan</h2>
     <form method="post">
       <div>
-        <label>Kode prefix (mis. SD)</label>
-        <input name="kode_prefix" required maxlength="10" placeholder="SD">
+        <label>Kode prefix (terisi otomatis, bisa diubah)</label>
+        <input name="kode_prefix" id="tambah-kode" maxlength="10" placeholder="SD">
       </div>
       <div>
         <label>Nama Tenan</label>
-        <input name="nama" required placeholder="Sari Dagang">
+        <input name="nama" id="tambah-nama" required placeholder="Sari Dagang">
       </div>
       <div class="row">
         <div><label>Kontak</label><input name="kontak"></div>
@@ -200,5 +200,26 @@ document.addEventListener('keydown', function (e) {
 });
 </script>
 {% endif %}
+
+<script>
+(function () {
+  var nama = document.getElementById('tambah-nama');
+  var kode = document.getElementById('tambah-kode');
+  if (!nama || !kode) return;
+
+  var dieditManual = false;
+  kode.addEventListener('input', function () {
+    // Kosongkan prefix untuk mengembalikan pengisian otomatis dari nama.
+    dieditManual = kode.value.trim() !== '';
+  });
+  nama.addEventListener('input', function () {
+    if (dieditManual) return;
+    var inisial = nama.value.trim().split(/\s+/).filter(Boolean).map(function (kata) {
+      return kata.charAt(0).toUpperCase();
+    }).join('');
+    kode.value = inisial.slice(0, 10);
+  });
+})();
+</script>
 
 {% endblock %}

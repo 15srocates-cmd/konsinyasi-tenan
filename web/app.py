@@ -1238,6 +1238,13 @@ def dashboard():
     )
 
 
+def prefix_dari_nama(nama: str) -> str:
+    """Kode prefix = huruf pertama dari setiap kata pada nama Tenan."""
+    return "".join(
+        kata[0] for kata in (nama or "").split() if kata
+    ).upper()[:10]
+
+
 @app.route("/tenan", methods=["GET", "POST"])
 @permission_required("tenan.view")
 def tenan():
@@ -1247,17 +1254,21 @@ def tenan():
             flash("Anda tidak memiliki kewenangan untuk mengubah Tenan.", "err")
             return redirect(url_for("tenan"))
         try:
+            nama = request.form["nama"].strip()
+            kode = request.form.get("kode_prefix", "").strip().upper() \
+                or prefix_dari_nama(nama)
+            if not nama or not kode:
+                raise ValueError("Nama Tenan wajib diisi")
             db.execute(
                 "INSERT INTO tenan (id, kode_prefix, nama, kontak, rekening) VALUES (?, ?, ?, ?, ?)",
-                (uid(), request.form["kode_prefix"].strip().upper(),
-                 request.form["nama"].strip(), request.form.get("kontak", ""),
+                (uid(), kode, nama, request.form.get("kontak", ""),
                  request.form.get("rekening", "")),
             )
             db.commit()
             flash("Tenan berhasil ditambahkan", "ok")
-        except sqlite3.IntegrityError:
+        except (sqlite3.IntegrityError, ValueError) as exc:
             db.rollback()
-            flash("Kode prefix sudah dipakai", "err")
+            flash(f"Gagal menambah Tenan: {exc}", "err")
         return redirect(url_for("tenan"))
 
     rows = db.execute(

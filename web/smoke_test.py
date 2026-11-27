@@ -129,6 +129,43 @@ with app.app_context():
 # Kembalikan data semula
 client.post(f"/tenan/{tid_sd}/edit", data=edit_lama)
 
+# --- Tambah Tenan: prefix otomatis dari huruf pertama tiap kata nama ---
+res = client.get("/tenan")
+assert b"tambah-nama" in res.data and b"dieditManual" in res.data
+res = client.post(
+    "/tenan",
+    data={
+        "nama": "Mitra Niaga Utama",
+        "kode_prefix": "",
+        "kontak": "0813-0000-0000",
+        "rekening": "BNI 999",
+    },
+    follow_redirects=True,
+)
+print("POST tambah Tenan dengan prefix otomatis ->", res.status_code)
+assert res.status_code == 200
+with app.app_context():
+    db = get_db()
+    tenan_baru = db.execute(
+        "SELECT * FROM tenan WHERE nama = ?", ("Mitra Niaga Utama",)
+    ).fetchone()
+    print("Tenan baru:", dict(tenan_baru))
+    assert tenan_baru["kode_prefix"] == "MNU", tenan_baru["kode_prefix"]
+
+# Prefix yang diisi manual tetap dipakai.
+res = client.post(
+    "/tenan",
+    data={"nama": "CV Dolan Raya", "kode_prefix": "DOL"},
+    follow_redirects=True,
+)
+assert res.status_code == 200
+with app.app_context():
+    db = get_db()
+    manual = db.execute(
+        "SELECT * FROM tenan WHERE nama = ?", ("CV Dolan Raya",)
+    ).fetchone()
+    assert manual["kode_prefix"] == "DOL"
+
 # --- Jual Model B, komisi tetap ---
 res = client.post(
     "/penjualan",
